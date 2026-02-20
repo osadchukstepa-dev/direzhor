@@ -52,7 +52,7 @@ month_to_num = {
 st.title("Кредит")
 
 st.warning(f"Доступно {balance}")
-kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
+kredit = st.number_input("Выберете сумму кредита", min_value=1000, max_value=60000)
 st.write(" ")
 
 col1, col2  = st.columns(2)
@@ -117,3 +117,4 @@ else:
 
     if st.button("Оформить кредит"):
         show_popup()
+
