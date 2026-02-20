@@ -46,8 +46,9 @@ else:
         messege()
         
         if st.button("Перейти к кредитам"):
-            st.switch_page("pages/kredits.py")
+            st.switch_page("kredits.py")
 
 
     with birz:
+
         pass
