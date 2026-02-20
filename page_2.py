@@ -35,6 +35,10 @@ else:
     with akk:
         st.title(f"Ваш баланс: {st.session_state.b}")
 
+        if st.button("Перейти к кредитам"):
+                st.switch_page("kredits.py")
+
+        
         if st.button("Очистить куки и выйти"):
             cookie_manager.delete("user_name", key="delete_user_name")
             st.session_state.nickname = ""
@@ -44,11 +48,10 @@ else:
         st.balloons()
         messege()
         
-        if st.button("Перейти к кредитам"):
-            st.switch_page("kredits.py")
-
+        
 
     with birz:
 
         pass
+
 
