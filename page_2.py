@@ -41,7 +41,6 @@ else:
             time.sleep(1) 
             st.switch_page("project.py") 
             st.rerun()
-        st.write("Все твои куки:", cookie_manager.get_all())
         st.balloons()
         messege()
         
@@ -52,3 +51,4 @@ else:
     with birz:
 
         pass
+
