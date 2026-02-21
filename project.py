@@ -8,9 +8,8 @@ import extra_streamlit_components as stx
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
 
-cookie_manager = stx.CookieManager()
-cookie_manager = stx.CookieManager(key="cookie_manager_reg") # Определение юзера в каждом файле
-
+# В файле project.py измени строку 11:
+cookie_manager = stx.CookieManager(key="cookie_project")
 
 DB_FILE_1 = "users_stats.json"
 
@@ -53,6 +52,7 @@ else:
             st.success("Готово! Обновите страницу.")
         else:
             st.error("Введите имя!")
+
 
 
 
