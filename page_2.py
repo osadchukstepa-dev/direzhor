@@ -2,6 +2,8 @@ import streamlit as st
 import time
 import extra_streamlit_components as stx
 from project import *
+from streamlit_gsheets import GSheetsConnection
+import extra_streamlit_components as stx
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
@@ -58,4 +60,5 @@ else:
     with birz:
 
         pass
+
 
