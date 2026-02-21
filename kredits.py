@@ -55,8 +55,6 @@ def save_db(data):
         json.dump(data, f, indent=4)
 
 db = load_db()
-user_name = cookie_manager.get(cookie="user_name")
-
 
 procen = {
     "Январь": 31,
@@ -170,5 +168,6 @@ else:
         show_popup()
 
     
+
 
 
