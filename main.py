@@ -4,6 +4,11 @@ import json
 import os
 import extra_streamlit_components as stx
 
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
+
+cookie_manager = stx.CookieManager()
+user_name = cookie_manager.get(cookie="user_name") # Определение юзера в каждом файле
 
 
 if 'n' not in st.session_state:
@@ -19,3 +24,4 @@ pg_kredits = st.Page("kredits.py", title="Кредиты")
 pg = st.navigation([pg_reg, pg_home, pg_kredits])
 
 pg.run()
+
