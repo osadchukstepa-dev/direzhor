@@ -11,7 +11,8 @@ df = conn.read(ttl=0) # Загрузка базы в начале каждого
 cookie_manager = stx.CookieManager()
 user_name = cookie_manager.get(cookie="user_name") # Определение юзера в каждом файле
 
-cookie_manager = stx.CookieManager(key="mngr_page2")
+cookie_manager = stx.CookieManager(key="cookie_reg")
+
 
 
 akk, birz = st.tabs(["Аккаунт", "Биржа"])
@@ -60,5 +61,6 @@ else:
     with birz:
 
         pass
+
 
 
