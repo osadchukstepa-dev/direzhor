@@ -2,6 +2,8 @@ import streamlit as st
 import extra_streamlit_components as stx
 import json
 import os
+from streamlit_gsheets import GSheetsConnection
+import extra_streamlit_components as stx
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
@@ -53,4 +55,5 @@ else:
             st.success("Готово! Обновите страницу.")
         else:
             st.error("Введите имя!")
+
 
