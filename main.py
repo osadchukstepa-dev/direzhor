@@ -19,4 +19,3 @@ pg_kredits = st.Page("kredits.py", title="Кредиты")
 pg = st.navigation([pg_reg, pg_home, pg_kredits])
 
 pg.run()
-

@@ -1,25 +1,26 @@
 import streamlit as st
+import extra_streamlit_components as stx
 import time
 from datetime  import date
 import json
 import os
+from project import *
 
-
-DB_FILE = "data.json"
+DB_FILE_1 = "data.json"
 def load_data():
-    if not os.path.exists(DB_FILE):
+    if not os.path.exists(DB_FILE_1):
         # Начальные данные, если файла еще нет
         initial_data = {"balance": 60000}
-        with open(DB_FILE, "w") as f:
+        with open(DB_FILE_1, "w") as f:
             json.dump(initial_data, f)
         return initial_data
     
-    with open(DB_FILE, "r") as f:
+    with open(DB_FILE_1, "r") as f:
         return json.load(f)
 
 # Функция для сохранения данных
 def save_data(data):
-    with open(DB_FILE, "w") as f:
+    with open(DB_FILE_1, "w") as f:
         json.dump(data, f, indent=4)
 
 
@@ -27,6 +28,23 @@ def save_data(data):
 data = load_data()
 balance = data["balance"]
 
+
+
+cookie_manager = stx.CookieManager()
+
+# Нужно также загрузить базу пользователей, чтобы было куда записывать кредит
+def load_db():
+    if os.path.exists("users_stats.json"): # Убедись, что имя файла совпадает с тем, где юзеры
+        with open("users_stats.json", "r") as f:
+            return json.load(f)
+    return {}
+
+def save_db(data):
+    with open("users_stats.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+db = load_db()
+user_name = cookie_manager.get(cookie="user_name")
 
 
 procen = {
@@ -52,7 +70,7 @@ month_to_num = {
 st.title("Кредит")
 
 st.warning(f"Доступно {balance}")
-kredit = st.number_input("Выберете сумму кредита", min_value=1000, max_value=60000)
+kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
 st.write(" ")
 
 col1, col2  = st.columns(2)
@@ -101,20 +119,42 @@ else:
         c5 = st.checkbox("согласен на начисление штрафных процентов")
         
         if st.button("Подтвердить и взять кредит"):
-            if c1 and c2 and c3 and c4 and c5:
+            # Проверяем, все ли галочки стоят и авторизован ли юзер
+            if all([c1, c2, c3, c4, c5]) and user_name:
                 if data["balance"] >= kredit:
-                    
+                    # 1. Снимаем деньги из банка
                     data["balance"] -= kredit
-                    
                     save_data(data)
-                    st.success("Кредит оформлен!")
+                    
+                    
+                    if user_name in db:
+                        
+                        if "loans" not in db[user_name]:
+                            db[user_name]["loans"] = []
+                        
+                        # Добавляем данные о новом кредите
+                        new_loan = {
+                            "amount": kredit,
+                            "date_start": str(d_start),
+                            "date_end": str(d_end),
+                            "days": loan_days,
+                            "repayment": round(kredit + total_interest, 2)
+                        }
+                        db[user_name]["loans"].append(new_loan)
+                        
+
+                        save_db(db)
+                        
+                    st.success(f"Кредит на {kredit} ₽ оформлен!")
                     time.sleep(1)
                     st.rerun()
                 else:
                     st.error("В банке недостаточно средств!")
+            elif not user_name:
+                st.error("Ошибка: вы не авторизованы!")
             else:
                 st.warning("Нужно отметить все пункты!")
 
     if st.button("Оформить кредит"):
         show_popup()
-
+    
