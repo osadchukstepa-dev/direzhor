@@ -2,6 +2,13 @@ import streamlit as st
 import time
 import extra_streamlit_components as stx
 from project import *
+
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
+
+cookie_manager = stx.CookieManager()
+user_name = cookie_manager.get(cookie="user_name") # Определение юзера в каждом файле
+
 cookie_manager = stx.CookieManager(key="mngr_page2")
 
 
@@ -51,3 +58,4 @@ else:
     with birz:
 
         pass
+
