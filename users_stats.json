@@ -1,14 +1,4 @@
 {
-    "Stepanchirk_velicouepen": {
-        "password": 1234,
-        "loans": [
-            {
-                "amount": 300,
-                "date_start": "2026-01-01",
-                "date_end": "2026-08-01",
-                "days": 212,
-                "repayment": 406.0
-            }
-        ]
-    }
+
+
 }
