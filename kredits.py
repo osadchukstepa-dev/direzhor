@@ -5,6 +5,7 @@ from datetime  import date
 import json
 import os
 from project import *
+from streamlit_gsheets import GSheetsConnection
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
@@ -167,3 +168,4 @@ else:
         show_popup()
 
     
+
