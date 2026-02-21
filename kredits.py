@@ -41,7 +41,6 @@ balance = data["balance"]
 
 
 
-cookie_manager = stx.CookieManager()
 
 # Нужно также загрузить базу пользователей, чтобы было куда записывать кредит
 def load_db():
@@ -168,6 +167,7 @@ else:
         show_popup()
 
     
+
 
 
 
