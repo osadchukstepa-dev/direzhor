@@ -25,10 +25,8 @@ def save_db(data):
         json.dump(data, f, indent=4)
 
 db = load_db()
-cookie_manager = stx.CookieManager()
 
-# 1. Читаем куки
-user_name = cookie_manager.get(cookie="user_name")
+
 
 if user_name:
 
@@ -55,6 +53,7 @@ else:
             st.success("Готово! Обновите страницу.")
         else:
             st.error("Введите имя!")
+
 
 
 
