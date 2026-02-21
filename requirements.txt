@@ -1,2 +1,5 @@
 streamlit
-extra_streamlit_components
+extra_streamlit_component
+st-gsheets-connection
+extra-streamlit-components
+pandas
