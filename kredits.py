@@ -6,6 +6,14 @@ import json
 import os
 from project import *
 
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
+
+cookie_manager = stx.CookieManager()
+user_name = cookie_manager.get(cookie="user_name") # Определение юзера в каждом файле
+
+
+
 DB_FILE_1 = "data.json"
 def load_data():
     if not os.path.exists(DB_FILE_1):
@@ -157,4 +165,5 @@ else:
 
     if st.button("Оформить кредит"):
         show_popup()
+
     
