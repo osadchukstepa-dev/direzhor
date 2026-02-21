@@ -3,6 +3,8 @@ import time
 import json
 import os
 import extra_streamlit_components as stx
+from streamlit_gsheets import GSheetsConnection
+import extra_streamlit_components as stx
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
@@ -24,4 +26,5 @@ pg_kredits = st.Page("kredits.py", title="Кредиты")
 pg = st.navigation([pg_reg, pg_home, pg_kredits])
 
 pg.run()
+
 
