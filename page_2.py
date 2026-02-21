@@ -9,7 +9,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
 
 cookie_manager = stx.CookieManager()
-#user_name = cookie_manager.get(cookie="user_name")  Определение юзера в каждом файле
+user_name = cookie_manager.get(cookie="user_name")  Определение юзера в каждом файле
 
 
 
@@ -59,6 +59,7 @@ else:
     with birz:
 
         pass
+
 
 
 
