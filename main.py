@@ -6,7 +6,7 @@ from streamlit_gsheets import GSheetsConnection
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ОСТАВЬ ТОЛЬКО ОДНУ СТРОКУ СОЗДАНИЯ МЕНЕДЖЕРА!
-cookie_manager = stx.CookieManager(key="global_cookie_manager")
+cookie_manager = stx.CookieManager(key="very_new_unique_key_123")
 
 # Получаем имя и передаем в другие файлы через session_state
 user_name = cookie_manager.get(cookie="user_name")
@@ -20,6 +20,7 @@ pg_kredits = st.Page("kredits.py", title="Кредиты")
 
 pg = st.navigation([pg_reg, pg_home, pg_kredits])
 pg.run()
+
 
 
 
