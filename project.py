@@ -1,12 +1,13 @@
 import streamlit as st
 import streamlit as st
-import extra_streamlit_components as stx
 import json
 import os
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
-# 1. Подключаемся к Google Sheets (Облако)
+user_name = st.session_state.get("user_name")
+cookie_manager = st.session_state.get("cookie_manager")
+
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_cloud_data():
@@ -66,4 +67,5 @@ else:
             st.info("Нажми еще раз или обнови страницу.")
         else:
             st.error("Введите имя!")
+
 
