@@ -1,17 +1,17 @@
 import streamlit as st
-import time
-import json
-import os
 import extra_streamlit_components as stx
 from streamlit_gsheets import GSheetsConnection
-import extra_streamlit_components as stx
-conn = st.connection("gsheets", type=GSheetsConnection)
-cookie_manager = stx.CookieManager(key="main_cookie_manager")
 
-# 2. Получаем имя и сохраняем его в session_state, чтобы другие страницы его видели
+# Подключение к таблице
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# ОСТАВЬ ТОЛЬКО ОДНУ СТРОКУ СОЗДАНИЯ МЕНЕДЖЕРА!
+cookie_manager = stx.CookieManager(key="global_cookie_manager")
+
+# Получаем имя и передаем в другие файлы через session_state
 user_name = cookie_manager.get(cookie="user_name")
-if user_name:
-    st.session_state.user_name = user_name
+st.session_state["user_name"] = user_name
+st.session_state["cookie_manager"] = cookie_manager
 
 # Навигация
 pg_reg = st.Page("project.py", title="Регистрация")
