@@ -2,7 +2,17 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
+# Мы их создали в main.py, здесь просто пользуемся
+user_name = st.session_state.get("user_name")
+cookie_manager = st.session_state.get("cookie_manager")
+
+# 2. Подключаемся к базе
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(ttl=0).dropna(how="all")
+
+
 # 1. Подключение к базе
+
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0).dropna(how="all")
 
@@ -51,3 +61,4 @@ else:
             st.info("Готово! Переключите страницу или обновите её.")
         else:
             st.error("Введите имя!")
+
