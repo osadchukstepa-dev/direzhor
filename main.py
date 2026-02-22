@@ -5,28 +5,22 @@ import os
 import extra_streamlit_components as stx
 from streamlit_gsheets import GSheetsConnection
 import extra_streamlit_components as stx
-
 conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
+cookie_manager = stx.CookieManager(key="main_cookie_manager")
 
-cookie_manager = stx.CookieManager(key="cookie_main_page")
+# 2. Получаем имя и сохраняем его в session_state, чтобы другие страницы его видели
+user_name = cookie_manager.get(cookie="user_name")
+if user_name:
+    st.session_state.user_name = user_name
 
-user_name = cookie_manager.get(cookie="user_name_2") # Определение юзера в каждом файле
-
-
-if 'n' not in st.session_state:
-    st.session_state.n = 60000  # Лимит кредита
-if 'b' not in st.session_state:
-    st.session_state.b = 1000   # Баланс
-if "nickname" not in st.session_state:
-    st.session_state.nickname = ""
+# Навигация
 pg_reg = st.Page("project.py", title="Регистрация")
 pg_home = st.Page("page_2.py", title="Главная")
 pg_kredits = st.Page("kredits.py", title="Кредиты")
 
 pg = st.navigation([pg_reg, pg_home, pg_kredits])
-
 pg.run()
+
 
 
 
