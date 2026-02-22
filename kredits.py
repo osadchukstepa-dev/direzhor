@@ -1,5 +1,4 @@
 import streamlit as st
-import extra_streamlit_components as stx
 import time
 from datetime  import date
 import json
@@ -10,9 +9,9 @@ from streamlit_gsheets import GSheetsConnection
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
 
-cookie_manager = stx.CookieManager()
+user_name = st.session_state.get("user_name")
+cookie_manager = st.session_state.get("cookie_manager")
 
-cookie_manager = stx.CookieManager(key="cookie_loan")
 
 
 
@@ -167,6 +166,7 @@ else:
         show_popup()
 
     
+
 
 
 
