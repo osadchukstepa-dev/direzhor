@@ -19,11 +19,6 @@ def save_cloud_data(updated_df):
 # Загружаем таблицу пользователей из облака
 df = load_cloud_data()
 
-# 2. Инициализируем куки с УНИКАЛЬНЫМ ключом для этого файла
-cookie_manager = stx.CookieManager(key="cookie_project_page")
-
-# !!! ВАЖНО: Получаем имя пользователя из куки, иначе будет ошибка NameError !!!
-user_name = cookie_manager.get(cookie="user_name")
 
 st.title("Личный кабинет")
 
@@ -71,3 +66,4 @@ else:
             st.info("Нажми еще раз или обнови страницу.")
         else:
             st.error("Введите имя!")
+
