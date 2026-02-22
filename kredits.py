@@ -1,20 +1,10 @@
 import streamlit as st
+import extra_streamlit_components as stx
 import time
 from datetime  import date
 import json
 import os
 from project import *
-from streamlit_gsheets import GSheetsConnection
-
-conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
-
-user_name = st.session_state.get("user_name")
-cookie_manager = st.session_state.get("cookie_manager")
-
-
-
-
 
 DB_FILE_1 = "data.json"
 def load_data():
@@ -40,6 +30,7 @@ balance = data["balance"]
 
 
 
+cookie_manager = stx.CookieManager()
 
 # Нужно также загрузить базу пользователей, чтобы было куда записывать кредит
 def load_db():
@@ -53,6 +44,8 @@ def save_db(data):
         json.dump(data, f, indent=4)
 
 db = load_db()
+user_name = cookie_manager.get(cookie="user_name")
+
 
 procen = {
     "Январь": 31,
@@ -164,10 +157,4 @@ else:
 
     if st.button("Оформить кредит"):
         show_popup()
-
     
-
-
-
-
-

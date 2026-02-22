@@ -1,16 +1,8 @@
 import streamlit as st
 import time
-from project import *
-from streamlit_gsheets import GSheetsConnection
 import extra_streamlit_components as stx
-
-conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(ttl=0) # Загрузка базы в начале каждого файла
-
-user_name = st.session_state.get("user_name")
-cookie_manager = st.session_state.get("cookie_manager")
-
-
+from project import *
+cookie_manager = stx.CookieManager(key="mngr_page2")
 
 
 akk, birz = st.tabs(["Аккаунт", "Биржа"])
@@ -49,6 +41,7 @@ else:
             time.sleep(1) 
             st.switch_page("project.py") 
             st.rerun()
+        st.write("Все твои куки:", cookie_manager.get_all())
         st.balloons()
         messege()
         
@@ -57,13 +50,4 @@ else:
 
 
     with birz:
-
         pass
-
-
-
-
-
-
-
-
