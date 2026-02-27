@@ -62,14 +62,7 @@ else:
             st.subheader("Список ваших кредитов")
 
 
-            # Вместо старой строки 65 используйте этот блок:
-            if current_user and current_user in db:
-                user_loans = db[current_user].get("loans", [])
-            else:
-                user_loans = []
-            
-            user_stats = [l.get("stats") for l in user_loans]
-
+            user_stats = [l.get("stats") for l in db[current_user].get("loans", [])]
 
 
             plus = user_stats.count("+")
@@ -96,5 +89,4 @@ else:
                                 st.caption(f"Срок: {loan['date_end']}")
                     else:
                         st.info("У вас нет активных кредитов")
-
                
