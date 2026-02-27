@@ -62,30 +62,41 @@ else:
             st.subheader("Список ваших кредитов")
 
 
-            # Вместо старой строки используй эту:
+зопасный блок:
+
+# 1. Сначала создаем пустые значения на случай, если данных нет
+            user_stats = []
+            plus = 0
+            minus = 0
+            
+            # 2. Проверяем, есть ли пользователь в нашей базе db
             if current_user in db:
+                # Достаем список кредитов (если его нет, будет пустой список [])
                 user_loans = db[current_user].get("loans", [])
+                
+                # Собираем все статусы из списка кредитов
                 user_stats = [l.get("stats") for l in user_loans]
-    
+                
+                # Теперь безопасно считаем
                 plus = user_stats.count("+")
                 minus = user_stats.count("_")
-                # ... дальше твой код с проверкой plus и minus ...
+                
+                # Твоя логика цвета (теперь она не упадет)
+                if plus > minus:
+                    st.write("Статус: :green[Оплачено]")
+                elif plus == minus and plus > 0: # Добавил проверку, чтобы не было оранжевого у пустых аккаунтов
+                    st.write("Статус: :orange[В процессе]")
+                else:
+                    st.write("Статус: :red[Должник]")
             else:
-                st.info("Вы еще не зарегистрированы в системе кредитования.")
-                user_loans = [] # Пустой список, чтобы цикл ниже не ругался
-
-
-
-            plus = user_stats.count("+")
-            minus = user_stats.count("-") 
-
-
-            if plus > minus:
-                st.write("Ваша кредитаная история: :green[хорошая]")
-            elif plus == minus:
-                st.write("Ваша кредитаная история : :orange[сомнительная]")
-            else:
-                st.write("Ваша кредитаная история: :red[Плохая]")
+                st.info("У вас пока нет истории кредитов")
+            
+                        if plus > minus:
+                            st.write("Ваша кредитаная история: :green[хорошая]")
+                        elif plus == minus:
+                            st.write("Ваша кредитаная история : :orange[сомнительная]")
+                        else:
+                            st.write("Ваша кредитаная история: :red[Плохая]")
 
             if current_user in db:
                     # Получаем список всех кредитов этого юзера
@@ -104,4 +115,5 @@ else:
     with birz:
 
         pass
+
 
