@@ -63,7 +63,9 @@ else:
             st.subheader("Список ваших кредитов")
 
 
-            user_stats = [l.get("stats") for l in db[current_user].get("loans", [])]
+            user_data = db.get(current_user, {})
+            user_loans = user_data.get("loans", [])
+            user_stats = [l.get("stats") for l in user_loans]
 
 
             plus = user_stats.count("+")
@@ -90,3 +92,4 @@ else:
                                 st.caption(f"Срок: {loan['date_end']}")
                     else:
                         st.info("У вас нет активных кредитов")
+
