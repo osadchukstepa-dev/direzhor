@@ -62,7 +62,18 @@ else:
             st.subheader("Список ваших кредитов")
 
 
-            user_stats = [l.get("stats") for l in db[current_user].get("loans", [])]
+            # Вместо старой строки используй эту:
+            if current_user in db:
+                user_loans = db[current_user].get("loans", [])
+                user_stats = [l.get("stats") for l in user_loans]
+    
+                plus = user_stats.count("+")
+                minus = user_stats.count("_")
+                # ... дальше твой код с проверкой plus и minus ...
+            else:
+                st.info("Вы еще не зарегистрированы в системе кредитования.")
+                user_loans = [] # Пустой список, чтобы цикл ниже не ругался
+
 
 
             plus = user_stats.count("+")
@@ -93,3 +104,4 @@ else:
     with birz:
 
         pass
+
