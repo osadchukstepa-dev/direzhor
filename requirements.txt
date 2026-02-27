@@ -2,3 +2,4 @@ streamlit>=1.30.0
 st-gsheets-connection>=0.0.3
 extra-streamlit-components>=0.1.60
 pandas
+PyDrive2
