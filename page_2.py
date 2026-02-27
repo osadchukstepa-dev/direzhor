@@ -62,7 +62,17 @@ else:
             st.subheader("Список ваших кредитов")
 
 
-            user_stats = [l.get("stats") for l in db[current_user].get("loans", [])]
+            # 1. Сначала проверяем, что куки вообще прилетели
+            if current_user is None:
+                st.warning("Авторизация... Если это висит долго, попробуйте обновить страницу.")
+                st.stop() # ОСТАНАВЛИВАЕМ выполнение, чтобы не было KeyError
+
+            # 2. Теперь безопасно лезем в базу
+            user_data = db.get(current_user, {}) # Если юзера нет в базе, вернет пустой словарь {}
+            user_loans = user_data.get("loans", []) # Если кредитов нет, вернет пустой список []
+
+            # 3. Собираем статистику без вылетов
+            user_stats = [l.get("stats") for l in user_loans]
 
 
             plus = user_stats.count("+")
