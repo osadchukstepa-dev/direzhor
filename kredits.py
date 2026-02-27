@@ -1,58 +1,65 @@
 import streamlit as st
 import extra_streamlit_components as stx
 import time
-from datetime import date
+from datetime  import date
 import json
 import os
-import base64
-from github import Github # Не забудь добавить PyGithub в requirements.txt
+from project import *
 
-# --- НАСТРОЙКИ GITHUB (Берутся из Secrets) ---
-token = st.secrets["GITHUB_TOKEN"]
-repo_name = st.secrets["REPO_NAME"] 
-
-g = Github(token)
-repo = g.get_repo(repo_name)
-
-# --- ФУНКЦИИ БАЗЫ ДАННЫХ (Теперь через GitHub) ---
-
-def load_db():
-    try:
-        contents = repo.get_contents("users_stats.json")
-        return json.loads(base64.b64decode(contents.content).decode('utf-8'))
-    except:
-        return {}
-
-def save_db(data_to_save):
-    contents = repo.get_contents("users_stats.json")
-    new_json = json.dumps(data_to_save, indent=4, ensure_ascii=False)
-    repo.update_file(contents.path, "Update loans", new_json, contents.sha)
-
-# Функции для баланса банка (data.json) - тоже через GitHub
+DB_FILE_1 = "data.json"
 def load_data():
-    try:
-        contents = repo.get_contents("data.json")
-        return json.loads(base64.b64decode(contents.content).decode('utf-8'))
-    except:
-        return {"balance": 60000}
+    if not os.path.exists(DB_FILE_1):
+        # Начальные данные, если файла еще нет
+        initial_data = {"balance": 60000}
+        with open(DB_FILE_1, "w") as f:
+            json.dump(initial_data, f)
+        return initial_data
+    
+    with open(DB_FILE_1, "r") as f:
+        return json.load(f)
 
-def save_data(data_to_save):
-    contents = repo.get_contents("data.json")
-    new_json = json.dumps(data_to_save, indent=4, ensure_ascii=False)
-    repo.update_file(contents.path, "Update bank balance", new_json, contents.sha)
+# Функция для сохранения данных
+def save_data(data):
+    with open(DB_FILE_1, "w") as f:
+        json.dump(data, f, indent=4)
 
-# --- ТВОЯ ЛОГИКА (БЕЗ ИЗМЕНЕНИЙ) ---
 
+# Загружаем актуальное состояние
 data = load_data()
 balance = data["balance"]
-db = load_db()
+
+
 
 cookie_manager = stx.CookieManager()
+
+# Нужно также загрузить базу пользователей, чтобы было куда записывать кредит
+def load_db():
+    if os.path.exists("users_stats.json"): # Убедись, что имя файла совпадает с тем, где юзеры
+        with open("users_stats.json", "r") as f:
+            return json.load(f)
+    return {}
+
+def save_db(data):
+    with open("users_stats.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+db = load_db()
 user_name = cookie_manager.get(cookie="user_name")
 
+
 procen = {
-    "Январь": 31, "Февраль": 28, "Март": 31, "Апрель": 30, "Май": 31, "Июнь": 30,
-    "Июль": 31, "Август": 31, "Сентябрь": 30, "Октябрь": 31, "Ноябрь": 30, "Декабрь": 31
+    "Январь": 31,
+    "Февраль": 28, # В високосный год 29
+    "Март": 31,
+    "Апрель": 30,
+    "Май": 31,
+    "Июнь": 30,  # Исправил порядок и дни
+    "Июль": 31,
+    "Август": 31,
+    "Сентябрь": 30, # Добавил значение (было пусто)
+    "Октябрь": 31,
+    "Ноябрь": 30,
+    "Декабрь": 31
 }
 
 month_to_num = {
@@ -61,72 +68,96 @@ month_to_num = {
 }
 
 st.title("Кредит")
+
 st.warning(f"Доступно {balance}")
 kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
+st.write(" ")
 
-col1, col2 = st.columns(2)
+col1, col2  = st.columns(2)
+
 with col1:
-    month = st.selectbox("Выбери месяц начала", list(procen.keys()))
+    month = st.selectbox("Выбери месяц начала кредита", list(procen.keys()))
 with col2:
-    days = st.selectbox("Выбери день начала", list(range(1, procen[month] + 1)))
+    max_days = procen[month]
+    days = st.selectbox("Выбери день начала кредита", list(range(1, max_days + 1)))
+
+
+st.write(" ")
+
 
 col3, col4 = st.columns(2)
-with col3:
-    month_finish = st.selectbox("Выбери месяц конца", list(procen.keys()))
-with col4:
-    days_finish = st.selectbox("Выбери день конца", list(range(1, procen[month_finish] + 1)))
 
-st.title(f"{month}, {days} --- {month_finish}, {days_finish}")
+with col3:
+    month_finish = st.selectbox("Выбери месяц конца кредита", list(procen.keys()))
+with col4:
+    max_days_finish = procen[month_finish]
+    days_finish = st.selectbox("Выбери день конца кредита", list(range(1, max_days_finish + 1)))
+
+st.title(f"{month}, {days} ------ {month_finish}, {days_finish}")
 
 d_start = date(2026, month_to_num[month], days)
 d_end = date(2026, month_to_num[month_finish], days_finish)
+
 delta = d_end - d_start
 loan_days = delta.days
 
 if loan_days <= 0:
-    st.error("Ошибка даты!")
+    st.error("Ошибка: Дата конца должна быть позже даты начала!")
 else:
+    
     base_rate = 0.05
     total_interest = kredit * (base_rate / 30) * loan_days
     st.metric(label="Переплата", value=f"{round(total_interest, 2)} ₽")
     
     @st.dialog("Кредитный договор")
     def show_popup():
-        loan_title = st.text_input("Название кредита")
-        c1 = st.checkbox("обязуюсь оплатить")
-        c2 = st.checkbox("оставляю залог")
-        c3 = st.checkbox("согласен на изъятие")
-        c4 = st.checkbox("срок 1 месяц")
-        c5 = st.checkbox("согласен на штрафы")
+        new_loan = st.text_input("введите название кредита")
+        st.write("Проставьте все галочки для подтверждения:")
+        c1 = st.checkbox("я обязуюсь оплатить кредит с комиссией")
+        c2 = st.checkbox("я оставляю под залог")
+        c3 = st.checkbox("согласен на изъятие залога при неуплате")
+        c4 = st.checkbox("согласен на срок 1 месяц для закрытия")
+        c5 = st.checkbox("согласен на начисление штрафных процентов")
         
-        if st.button("Подтвердить"):
+        if st.button("Подтвердить и взять кредит"):
+            
             if all([c1, c2, c3, c4, c5]) and user_name:
                 if data["balance"] >= kredit:
+                    # 1. Снимаем деньги из банка
                     data["balance"] -= kredit
-                    save_data(data) # Сохранит на GitHub
+                    save_data(data)
+                    
                     
                     if user_name in db:
+                        
                         if "loans" not in db[user_name]:
                             db[user_name]["loans"] = []
                         
-                        db[user_name]["loans"].append({
-                            "name kredite": loan_title,
+                        # Добавляем данные о новом кредите
+                        new_loan = {
+                            "name kredite": new_loan,
                             "amount": kredit,
                             "date_start": str(d_start),
                             "date_end": str(d_end),
                             "days": loan_days,
                             "repayment": round(kredit + total_interest, 2),
                             "stats": "_"
-                        })
-                        save_db(db) # Сохранит на GitHub
+                        }
+                        db[user_name]["loans"].append(new_loan)
+                        
+
+                        save_db(db)
                         
                     st.success(f"Кредит на {kredit} ₽ оформлен!")
                     time.sleep(1)
                     st.rerun()
                 else:
-                    st.error("В банке нет денег!")
+                    st.error("В банке недостаточно средств!")
+            elif not user_name:
+                st.error("Ошибка: вы не авторизованы!")
             else:
-                st.warning("Заполните всё!")
+                st.warning("Нужно отметить все пункты!")
 
     if st.button("Оформить кредит"):
         show_popup()
+    
