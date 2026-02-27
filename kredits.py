@@ -111,6 +111,7 @@ else:
     
     @st.dialog("Кредитный договор")
     def show_popup():
+        new_loan = st.text_input("введите название кредита")
         st.write("Проставьте все галочки для подтверждения:")
         c1 = st.checkbox("я обязуюсь оплатить кредит с комиссией")
         c2 = st.checkbox("я оставляю под залог")
@@ -119,7 +120,7 @@ else:
         c5 = st.checkbox("согласен на начисление штрафных процентов")
         
         if st.button("Подтвердить и взять кредит"):
-            # Проверяем, все ли галочки стоят и авторизован ли юзер
+            
             if all([c1, c2, c3, c4, c5]) and user_name:
                 if data["balance"] >= kredit:
                     # 1. Снимаем деньги из банка
@@ -134,11 +135,13 @@ else:
                         
                         # Добавляем данные о новом кредите
                         new_loan = {
+                            "name kredite": new_loan,
                             "amount": kredit,
                             "date_start": str(d_start),
                             "date_end": str(d_end),
                             "days": loan_days,
-                            "repayment": round(kredit + total_interest, 2)
+                            "repayment": round(kredit + total_interest, 2),
+                            "stats": "_"
                         }
                         db[user_name]["loans"].append(new_loan)
                         
