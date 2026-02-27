@@ -40,8 +40,7 @@ if not st.session_state.nickname:
 
 if not st.session_state.nickname:
     st.write("К сожалению, у вас нет аккаунта, войдите для дальнейшего использования ")
-if current_user:
-            st.write(f"Вы вошли как: **{current_user}**")
+
 else:
     with akk:
         st.title(f"Ваш баланс: {st.session_state.b}")
@@ -92,4 +91,5 @@ else:
                         st.info("У вас нет активных кредитов")
                
     with birz:
+
         pass
