@@ -141,7 +141,7 @@ else:
                             "date_end": str(d_end),
                             "days": loan_days,
                             "repayment": round(kredit + total_interest, 2),
-                            "stats": "_"
+                            "stats": "+"
                         }
                         db[user_name]["loans"].append(new_loan)
                         
