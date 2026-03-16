@@ -15,7 +15,7 @@ db = get_updated_db() # Теперь db всегда актуальна
 cookie_manager = stx.CookieManager(key="mngr_page2")
 current_user = cookie_manager.get("user_name")
 
-akk, birz = st.tabs(["Аккаунт", "Биржа"])
+akk, birz = st.tabs(["Аккаунт", "Кредиты"])
 
 if "reg" not in st.session_state:
     st.session_state.reg = True
@@ -44,7 +44,7 @@ if not st.session_state.nickname:
 else:
     with akk:
         st.title(f"Ваш баланс: {st.session_state.b}")
-
+        st.write(f"Вы вошли как: **{current_user}**")
         if st.button("Очистить куки и выйти"):
             cookie_manager.delete("user_name", key="delete_user_name")
             st.session_state.nickname = ""
@@ -54,7 +54,7 @@ else:
             st.balloons()
         messege()
         if current_user:
-            st.write(f"Вы вошли как: **{current_user}**")
+            
                 
         
         if st.button("Перейти к кредитам"):
@@ -89,6 +89,7 @@ else:
                             with st.expander(f"📌 {loan.get('name kredite', 'Кредит')}"):
                                 st.write(f"Сумма: {loan['amount']} ₽")
                                 st.write(f"К возврату: {loan['repayment']} ₽")
+                                
                                 st.caption(f"Срок: {loan['date_end']}")
                     else:
                         st.info("У вас нет активных кредитов")
