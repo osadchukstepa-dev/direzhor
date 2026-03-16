@@ -44,7 +44,7 @@ if not st.session_state.nickname:
 else:
     with akk:
         st.title(f"Ваш баланс: {st.session_state.b}")
-        st.write(f"Вы вошли как: **{current_user}**")
+        
         if st.button("Очистить куки и выйти"):
             cookie_manager.delete("user_name", key="delete_user_name")
             st.session_state.nickname = ""
