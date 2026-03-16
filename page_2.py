@@ -94,9 +94,8 @@ else:
                                 st.write("сдать кредит")
                                 if st.number_input("Введите код для сдачи кредита") != 12345 and st.button("Сдать кредит"):
                                     st.error("Неверный код")
-                                if st.number_input("Введите код для сдачи кредита") == 12345 and st.button("Сдать кредит"):
+                                else:
                                     plus +=1
-                                    st.success("Вы удачно сдали кредит")
                     else:
                         st.info("У вас нет активных кредитов")
 
