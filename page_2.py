@@ -90,8 +90,12 @@ else:
                             with st.expander(f"📌 {loan.get('name kredite', 'Кредит')}"):
                                 st.write(f"Сумма: {loan['amount']} ₽")
                                 st.write(f"К возврату: {loan['repayment']} ₽")
-                                
                                 st.caption(f"Срок: {loan['date_end']}")
+                                st.write("сдать кредит")
+                                if st.number_input("Введите код для сдачи кредита") != 12345 and st.button("Сдать кредит"):
+                                    st.error("Неверный код")
+                                else:
+                                    plus +=1
                     else:
                         st.info("У вас нет активных кредитов")
 
