@@ -6,7 +6,7 @@ from datetime  import date
 import json
 import os
 from project import *
-
+from datetime import datetime, timedelta
 kredits_cookies = cookie_manager.get(cookie="kredits_cookies")
 
 DB_FILE_1 = "data.json"
@@ -151,7 +151,7 @@ else:
                 loans_list.append(new_loan_entry)
                 
                 # ВАЖНО: сохраняем как строку через json.dumps
-                from datetime import datetime, timedelta
+                
                 expires = datetime.now() + timedelta(days=30)
                 
                 cookie_manager.set(
@@ -165,8 +165,6 @@ else:
                 time.sleep(1)
                 st.rerun()
 
-                else:
-                    st.error("В банке недостаточно средств!")
             elif not user_name:
                 st.error("Ошибка: вы не авторизованы!")
             else:
