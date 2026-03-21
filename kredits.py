@@ -123,47 +123,48 @@ else:
         c5 = st.checkbox("согласен на начисление штрафных процентов")
         
         if st.button("Подтвердить и взять кредит"):
-            
+            # ... внутри диалога подтверждения кредита ...
             if all([c1, c2, c3, c4, c5]) and user_name:
-                if data["balance"] >= kredit:
-                    # 1. Снимаем деньги из банка
-                    data["balance"] -= kredit
-                    save_data(data)
-                    
-                    # 2. Формируем данные кредита
-                    loan_details = {
-                        "name_kredite": new_loan,
-                        "amount": kredit,
-                        "date_start": str(d_start),
-                        "date_end": str(d_end),
-                        "repayment": round(kredit + total_interest, 2)
-                    }
+                # 1. Получаем текущий список кредитов из куки
+                raw_cookies = cookie_manager.get(cookie="kredits_cookies")
+                
+                # Декодируем строку из куки в список (если там пусто — создаем пустой список)
+                if raw_cookies:
+                    try:
+                        import json
+                        loans_list = json.loads(raw_cookies)
+                    except:
+                        loans_list = []
+                else:
+                    loans_list = []
+            
+                # 2. Создаем объект нового кредита
+                new_loan_entry = {
+                    "name_kredite": new_loan,
+                    "amount": kredit,
+                    "date_end": str(d_end),
+                    "repayment": round(kredit + total_interest, 2),
+                    "stats": "+"
+                }
+            
+                # 3. Добавляем в список и сохраняем в куки на 30 дней
+                loans_list.append(new_loan_entry)
+                
+                # ВАЖНО: сохраняем как строку через json.dumps
+                from datetime import datetime, timedelta
+                expires = datetime.now() + timedelta(days=30)
+                
+                cookie_manager.set(
+                    "kredits_cookies", 
+                    json.dumps(loans_list), 
+                    expires_at=expires, 
+                    key="save_loan_cookie"
+                )
+            
+                st.success(f"Кредит '{new_loan}' сохранен в браузере!")
+                time.sleep(1)
+                st.rerun()
 
-                    # 3. Сохраняем в JSON базу (users_stats.json)
-                    if user_name in db:
-                        if "loans" not in db[user_name]:
-                            db[user_name]["loans"] = []
-                        db[user_name]["loans"].append(loan_details)
-                        save_db(db)
-
-                        # 4. Сохраняем в КУКИ
-                        # Получаем текущие кредиты из куки или создаем пустой список
-                        current_kredits = cookie_manager.get(cookie="kredits_cookies")
-                        if isinstance(current_kredits, str):
-                            import json
-                            try:
-                                loans_list = json.loads(current_kredits)
-                            except:
-                                loans_list = []
-                        else:
-                            loans_list = current_kredits if current_kredits else []
-
-                        loans_list.append(loan_details)
-                        cookie_manager.set("kredits_cookies", loans_list, key="save_loans_cookie")
-
-                        st.success(f"Кредит на {kredit} ₽ оформлен!")
-                        time.sleep(1)
-                        st.rerun()
                 else:
                     st.error("В банке недостаточно средств!")
             elif not user_name:
