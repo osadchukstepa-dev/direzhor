@@ -1,3 +1,4 @@
+
 import streamlit as st
 import extra_streamlit_components as stx
 import time
@@ -5,6 +6,8 @@ from datetime  import date
 import json
 import os
 from project import *
+
+kredits_cookies = cookie_manager.get(cookie="kredits_cookies")
 
 DB_FILE_1 = "data.json"
 def load_data():
@@ -127,30 +130,40 @@ else:
                     data["balance"] -= kredit
                     save_data(data)
                     
-                    
+                    # 2. Формируем данные кредита
+                    loan_details = {
+                        "name_kredite": new_loan,
+                        "amount": kredit,
+                        "date_start": str(d_start),
+                        "date_end": str(d_end),
+                        "repayment": round(kredit + total_interest, 2)
+                    }
+
+                    # 3. Сохраняем в JSON базу (users_stats.json)
                     if user_name in db:
-                        
                         if "loans" not in db[user_name]:
                             db[user_name]["loans"] = []
-                        
-                        # Добавляем данные о новом кредите
-                        new_loan = {
-                            "name kredite": new_loan,
-                            "amount": kredit,
-                            "date_start": str(d_start),
-                            "date_end": str(d_end),
-                            "days": loan_days,
-                            "repayment": round(kredit + total_interest, 2),
-                            "stats": "+"
-                        }
-                        db[user_name]["loans"].append(new_loan)
-                        
-
+                        db[user_name]["loans"].append(loan_details)
                         save_db(db)
-                        
-                    st.success(f"Кредит на {kredit} ₽ оформлен!")
-                    time.sleep(1)
-                    st.rerun()
+
+                        # 4. Сохраняем в КУКИ
+                        # Получаем текущие кредиты из куки или создаем пустой список
+                        current_kredits = cookie_manager.get(cookie="kredits_cookies")
+                        if isinstance(current_kredits, str):
+                            import json
+                            try:
+                                loans_list = json.loads(current_kredits)
+                            except:
+                                loans_list = []
+                        else:
+                            loans_list = current_kredits if current_kredits else []
+
+                        loans_list.append(loan_details)
+                        cookie_manager.set("kredits_cookies", loans_list, key="save_loans_cookie")
+
+                        st.success(f"Кредит на {kredit} ₽ оформлен!")
+                        time.sleep(1)
+                        st.rerun()
                 else:
                     st.error("В банке недостаточно средств!")
             elif not user_name:
