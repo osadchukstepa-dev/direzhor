@@ -1,3 +1,4 @@
+
 import streamlit as st
 import time
 import extra_streamlit_components as stx
@@ -11,6 +12,8 @@ def get_updated_db():
 
 db = get_updated_db() # Теперь db всегда актуальна
 
+if "nickname" not in st.session_state:
+    st.session_state.nickname = ""
 
 cookie_manager = stx.CookieManager(key="mngr_page2")
 current_user = cookie_manager.get("user_name")
@@ -90,12 +93,9 @@ else:
                             with st.expander(f"📌 {loan.get('name kredite', 'Кредит')}"):
                                 st.write(f"Сумма: {loan['amount']} ₽")
                                 st.write(f"К возврату: {loan['repayment']} ₽")
-                                st.caption(f"Срок: {loan['date_end']}")
+                                st.caption(f"Срок(до какого числа): {loan['date_end']}")
                                 st.write("сдать кредит")
-                                if st.number_input("Введите код для сдачи кредита") != 12345 and st.button("Сдать кредит"):
-                                    st.error("Неверный код")
-                                else:
-                                    plus +=1
+
                     else:
                         st.info("У вас нет активных кредитов")
 
