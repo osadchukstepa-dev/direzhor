@@ -65,41 +65,37 @@ else:
             st.switch_page("kredits.py")
         with birz:
             st.subheader("Список ваших кредитов")
-            
-            # 1. Получаем данные из кук
-            raw_data = cookie_manager.get(cookie="kredits_cookies")
-            
-            if raw_data is None:
-                st.info("Загрузка данных из браузера... (если это длится долго, обновите страницу)")
+
+
+            user_data = db.get(current_user, {})
+            user_loans = user_data.get("loans", [])
+            user_stats = [l.get("stats") for l in user_loans]
+
+
+            plus = user_stats.count("+")
+            minus = user_stats.count("-") 
+
+
+            if plus > minus:
+                st.write("Ваша кредитаная история: :green[хорошая]")
+            elif plus == minus:
+                st.write("Ваша кредитаная история : :orange[сомнительная]")
             else:
-                try:
-                    # 2. Декодируем список кредитов из куки
-                    user_loans = json.loads(raw_data) if isinstance(raw_data, str) else (raw_data if raw_data else [])
+                st.write("Ваша кредитаная история: :red[Плохая]")
+
+            if current_user in db:
+                    # Получаем список всех кредитов этого юзера
+                    user_loans = db[current_user].get("loans", [])
                     
                     if user_loans:
-                        # Считаем историю (если в кредитах есть поле stats)
-                        # Если stats нет, по умолчанию ставим "+"
-                        plus = sum(1 for l in user_loans if l.get("stats", "+") == "+")
-                        minus = sum(1 for l in user_loans if l.get("stats") == "-")
-        
-                        if plus > minus:
-                            st.write("Ваша кредитная история: :green[хорошая]")
-                        elif plus == minus:
-                            st.write("Ваша кредитная история: :orange[сомнительная]")
-                        else:
-                            st.write("Ваша кредитная история: :red[плохая]")
-        
-                        # 3. Выводим каждый кредит из КУКИ
+                        # 3. Цикл проходит по ВСЕМ кредитам юзера и выводит их
                         for loan in user_loans:
-                            with st.expander(f"📌 {loan.get('name', 'Кредит')}"):
+                            with st.expander(f"📌 {loan.get('name kredite', 'Кредит')}"):
                                 st.write(f"Сумма: {loan['amount']} ₽")
                                 st.write(f"К возврату: {loan['repayment']} ₽")
-                                st.caption(f"Срок: {loan.get('date_end')}")
-                                if st.button("Сдать кредит", key=f"pay_{loan['name']}_{time.time()}"):
-                                    st.write("Тут будет логика оплаты")
+                                st.caption(f"Срок(до какого числа): {loan['date_end']}")
+                                st.write("сдать кредит")
+
                     else:
-                        st.info("У вас нет активных кредитов (куки пусты)")
-                        
-                except Exception as e:
-                    st.error(f"Ошибка чтения кук: {e}")
-        
+                        st.info("У вас нет активных кредитов")
+
