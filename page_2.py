@@ -93,7 +93,7 @@ else:
                             with st.expander(f"📌 {loan.get('name kredite', 'Кредит')}"):
                                 st.write(f"Сумма: {loan['amount']} ₽")
                                 st.write(f"К возврату: {loan['repayment']} ₽")
-                                st.caption(f"Срок(до какого числа): {loan['date_end']}")
+                                st.caption(f"Срок: {loan['date_end']}")
                                 st.write("сдать кредит")
 
                     else:
