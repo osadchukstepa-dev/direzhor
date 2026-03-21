@@ -125,45 +125,41 @@ else:
         if st.button("Подтвердить и взять кредит"):
             # ... внутри диалога подтверждения кредита ...
             if all([c1, c2, c3, c4, c5]) and user_name:
-                # 1. Получаем текущий список кредитов из куки
-                raw_cookies = cookie_manager.get(cookie="kredits_cookies")
+                cookie_manager.set(
+                "kredits_cookies", 
+                json.dumps(loans_list), 
+                key=f"save_loan_{time.time()}" # Уникальный ключ при каждом нажатии
+                )
+
+                old_cookies = cookie_manager.get(cookie="kredits_cookies")
                 
-                # Декодируем строку из куки в список (если там пусто — создаем пустой список)
-                if raw_cookies:
-                    try:
-                        import json
-                        loans_list = json.loads(raw_cookies)
-                    except:
-                        loans_list = []
+                # Парсим старое (если это строка)
+                if isinstance(old_cookies, str):
+                    try: loans_list = json.loads(old_cookies)
+                    except: loans_list = []
                 else:
-                    loans_list = []
+                    loans_list = old_cookies if old_cookies else []
             
-                # 2. Создаем объект нового кредита
-                new_loan_entry = {
-                    "name_kredite": new_loan,
+                # 2. Добавляем новый кредит
+                new_data = {
+                    "name": new_loan,
                     "amount": kredit,
                     "date_end": str(d_end),
-                    "repayment": round(kredit + total_interest, 2),
-                    "stats": "+"
+                    "repayment": round(kredit + total_interest, 2)
                 }
+                loans_list.append(new_data)
             
-                # 3. Добавляем в список и сохраняем в куки на 30 дней
-                loans_list.append(new_loan_entry)
-                
-                # ВАЖНО: сохраняем как строку через json.dumps
-                
-                expires = datetime.now() + timedelta(days=30)
-                
+                # 3. ЗАПИСЫВАЕМ (обязательно через json.dumps!)
                 cookie_manager.set(
                     "kredits_cookies", 
                     json.dumps(loans_list), 
-                    expires_at=expires, 
-                    key="save_loan_cookie"
+                    key="save_action_unique" # Ключ должен быть уникальным!
                 )
-            
-                st.success(f"Кредит '{new_loan}' сохранен в браузере!")
-                time.sleep(1)
+                
+                st.success("Данные отправлены в браузер...")
+                time.sleep(2) # ДАЙ БРАУЗЕРУ 2 СЕКУНДЫ, ЧТОБЫ ПРИНЯТЬ КУКУ
                 st.rerun()
+
 
             elif not user_name:
                 st.error("Ошибка: вы не авторизованы!")
