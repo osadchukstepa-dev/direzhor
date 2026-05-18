@@ -15,8 +15,7 @@ global_db = get_global_db()
 cookie_manager = stx.CookieManager(key="kredits_cookie_manager")
 user_name = cookie_manager.get(cookie="user_name")
 
-# --- ЗАГРУЗКА ДАННЫХ ИЗ КУКИ (ВМЕСТО JSON) ---
-# Получаем баланс банка из куки (по умолчанию 60000)
+# --- ЗАГРУЗКА ДАННЫХ ИЗ КУКИ ---
 bank_balance_cookie = cookie_manager.get(cookie="bank_balance")
 if bank_balance_cookie is None:
     bank_balance = 60000
@@ -26,7 +25,6 @@ else:
     except:
         bank_balance = 60000
 
-# Получаем список кредитов пользователя из куки
 current_kredits = cookie_manager.get(cookie="kredits_cookies")
 loans_list = []
 if current_kredits:
@@ -38,27 +36,37 @@ if current_kredits:
     elif isinstance(current_kredits, list):
         loans_list = current_kredits
 
-# Считаем сумму активных долгов пользователя
+# Считаем сумму активных долгов из куки
 total_active_credit = sum(loan.get("amount", 0) for loan in loans_list)
 
+# --- ИСПРАВЛЕННЫЙ БЛОК ОЧИСТКИ КРЕДИТА АДМИНОМ ---
+# Проверяем: если запись в глобальной базе УЖЕ СУЩЕСТВУЕТ, но админ сбросил кредит в 0
 if user_name and user_name in global_db:
-    if global_db[user_name].get("credit_taken", 0) == 0 and total_active_credit > 0:
+    if global_db[user_name].get("credit_taken", -1) == 0 and total_active_credit > 0:
         cookie_manager.set("kredits_cookies", [], key="clear_loans_cookie")
         loans_list = []
         total_active_credit = 0
 
-# Синхронизируем данные с админкой
+# --- СИНХРОНИЗАЦИЯ С АДМИНКОЙ ---
 if user_name:
-    global_db[user_name] = {
-        "balance": st.session_state.get("b", 1000),
-        "credit_limit": st.session_state.get("n", 60000),
-        "credit_taken": total_active_credit
-    }
+    # Если записи о юзере еще нет в глобальной памяти, создаем её с текущим кредитом из куки
+    if user_name not in global_db:
+        global_db[user_name] = {
+            "balance": st.session_state.get("b", 1000),
+            "credit_limit": st.session_state.get("n", 60000),
+            "credit_taken": total_active_credit
+        }
+    else:
+        # Если запись уже есть, просто обновляем балансы (не ломая credit_taken)
+        global_db[user_name]["balance"] = st.session_state.get("b", 1000)
+        global_db[user_name]["credit_limit"] = st.session_state.get("n", 60000)
 
+# Дальше идет ваш стандартный словарь месяцев procen...
 procen = {
     "Январь": 31, "Февраль": 28, "Март": 31, "Апрель": 30, "Май": 31, "Июнь": 30,
     "Июль": 31, "Август": 31, "Сентябрь": 30, "Октябрь": 31, "Ноябрь": 30, "Декабрь": 31
 }
+
 
 month_to_num = {
     "Январь": 1, "Февраль": 2, "Март": 3, "Апрель": 4, "Май": 5, "Июнь": 6,
