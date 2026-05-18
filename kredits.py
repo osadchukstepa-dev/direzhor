@@ -41,6 +41,12 @@ if current_kredits:
 # Считаем сумму активных долгов пользователя
 total_active_credit = sum(loan.get("amount", 0) for loan in loans_list)
 
+if user_name and user_name in global_db:
+    if global_db[user_name].get("credit_taken", 0) == 0 and total_active_credit > 0:
+        cookie_manager.set("kredits_cookies", [], key="clear_loans_cookie")
+        loans_list = []
+        total_active_credit = 0
+
 # Синхронизируем данные с админкой
 if user_name:
     global_db[user_name] = {
