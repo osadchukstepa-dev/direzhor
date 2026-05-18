@@ -3,7 +3,6 @@ import extra_streamlit_components as stx
 import time
 from datetime import date
 import json
-import os
 from project import *
 
 # --- ПОДКЛЮЧЕНИЕ ГЛОБАЛЬНОЙ БАЗЫ ДЛЯ АДМИНА ---
@@ -13,47 +12,37 @@ def get_global_db():
 
 global_db = get_global_db()
 
-kredits_cookies = cookie_manager.get(cookie="kredits_cookies")
-
-DB_FILE_1 = "data.json"
-def load_data():
-    if not os.path.exists(DB_FILE_1):
-        initial_data = {"balance": 60000}
-        with open(DB_FILE_1, "w") as f:
-            json.dump(initial_data, f)
-        return initial_data
-    
-    with open(DB_FILE_1, "r") as f:
-        return json.load(f)
-
-def save_data(data):
-    with open(DB_FILE_1, "w") as f:
-        json.dump(data, f, indent=4)
-
-data = load_data()
-balance = data["balance"]
-
-cookie_manager = stx.CookieManager()
-
-def load_db():
-    if os.path.exists("users_stats.json"):
-        with open("users_stats.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def save_db(data):
-    with open("users_stats.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-
-db = load_db()
+cookie_manager = stx.CookieManager(key="kredits_cookie_manager")
 user_name = cookie_manager.get(cookie="user_name")
 
-# Синхронизируем состояние пользователя с глобальной базой, если он зашел на страницу
+# --- ЗАГРУЗКА ДАННЫХ ИЗ КУКИ (ВМЕСТО JSON) ---
+# Получаем баланс банка из куки (по умолчанию 60000)
+bank_balance_cookie = cookie_manager.get(cookie="bank_balance")
+if bank_balance_cookie is None:
+    bank_balance = 60000
+else:
+    try:
+        bank_balance = float(bank_balance_cookie)
+    except:
+        bank_balance = 60000
+
+# Получаем список кредитов пользователя из куки
+current_kredits = cookie_manager.get(cookie="kredits_cookies")
+loans_list = []
+if current_kredits:
+    if isinstance(current_kredits, str):
+        try:
+            loans_list = json.loads(current_kredits)
+        except:
+            loans_list = []
+    elif isinstance(current_kredits, list):
+        loans_list = current_kredits
+
+# Считаем сумму активных долгов пользователя
+total_active_credit = sum(loan.get("amount", 0) for loan in loans_list)
+
+# Синхронизируем данные с админкой
 if user_name:
-    # Считаем общую сумму всех активных кредитов пользователя из базы JSON
-    user_loans = db.get(user_name, {}).get("loans", [])
-    total_active_credit = sum(loan.get("amount", 0) for loan in user_loans)
-    
     global_db[user_name] = {
         "balance": st.session_state.get("b", 1000),
         "credit_limit": st.session_state.get("n", 60000),
@@ -71,7 +60,14 @@ month_to_num = {
 }
 
 st.title("Кредит")
-st.warning(f"Доступно в банке: {balance} ₽")
+
+# Показываем список текущих взятых кредитов пользователя, если они есть
+if loans_list:
+    st.subheader("📋 Ваши активные кредиты:")
+    for i, loan in enumerate(loans_list):
+        st.info(f"**{loan['name_kredite']}**: {loan['amount']} ₽ (Вернуть: {loan['repayment']} ₽ до {loan['date_end']})")
+
+st.warning(f"Доступно в банке: {bank_balance} ₽")
 kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
 st.write(" ")
 
@@ -118,10 +114,10 @@ else:
         
         if st.button("Подтвердить и взять кредит"):
             if all([c1, c2, c3, c4, c5]) and user_name:
-                if data["balance"] >= kredit:
-                    # 1. Снимаем деньги из банка
-                    data["balance"] -= kredit
-                    save_data(data)
+                if bank_balance >= kredit:
+                    # 1. Снимаем деньги из баланса банка и обновляем куку банка
+                    new_bank_balance = bank_balance - kredit
+                    cookie_manager.set("bank_balance", new_bank_balance, key="save_bank_cookie")
                     
                     # 2. Формируем данные кредита
                     loan_details = {
@@ -132,38 +128,16 @@ else:
                         "repayment": round(kredit + total_interest, 2)
                     }
 
-                    # 3. Сохраняем в JSON базу (users_stats.json)
-                    if user_name not in db:
-                        db[user_name] = {"password": 0}
-                    
-                    if "loans" not in db[user_name]:
-                        db[user_name]["loans"] = []
-                    
-                    db[user_name]["loans"].append(loan_details)
-                    save_db(db)
+                    # 3. Добавляем кредит в список куки
+                    loans_list.append(loan_details)
+                    cookie_manager.set("kredits_cookies", loans_list, key="save_loans_cookie")
 
-                    # 4. ОБНОВЛЯЕМ ОПЕРАТИВНУЮ ПАМЯТЬ ДЛЯ АДМИНА
-                    user_loans = db[user_name].get("loans", [])
-                    total_active_credit = sum(l.get("amount", 0) for l in user_loans)
-                    
+                    # 4. Моментально обновляем данные для админа
                     global_db[user_name] = {
                         "balance": st.session_state.get("b", 1000),
                         "credit_limit": st.session_state.get("n", 60000),
-                        "credit_taken": total_active_credit
+                        "credit_taken": sum(l.get("amount", 0) for l in loans_list)
                     }
-
-                    # 5. Сохраняем в КУКИ
-                    current_kredits = cookie_manager.get(cookie="kredits_cookies")
-                    if isinstance(current_kredits, str):
-                        try:
-                            loans_list = json.loads(current_kredits)
-                        except:
-                            loans_list = []
-                    else:
-                        loans_list = current_kredits if current_kredits else []
-
-                    loans_list.append(loan_details)
-                    cookie_manager.set("kredits_cookies", loans_list, key="save_loans_cookie")
 
                     st.success(f"Кредит на {kredit} ₽ оформлен!")
                     time.sleep(1)
