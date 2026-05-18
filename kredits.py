@@ -1,9 +1,16 @@
 import streamlit as st
-import extra_streamlit_components as stx
 import time
 from datetime import date
-import json
+import shelve
 from project import *
+
+# --- ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ SHELVE (ВМЕСТО JSON И КУКИ) ---
+# shelve автоматически создаст файл базы данных на сервере
+db_server = shelve.open("server_bank_db", writeback=True)
+
+# Инициализируем баланс банка, если его еще нет
+if "bank_balance" not in db_server:
+    db_server["bank_balance"] = 60000.0
 
 # --- ПОДКЛЮЧЕНИЕ ГЛОБАЛЬНОЙ БАЗЫ ДЛЯ АДМИНА ---
 @st.cache_resource
@@ -12,61 +19,31 @@ def get_global_db():
 
 global_db = get_global_db()
 
-cookie_manager = stx.CookieManager(key="kredits_cookie_manager")
-user_name = cookie_manager.get(cookie="user_name")
+# Получаем имя текущего пользователя
+user_name = st.session_state.get("nickname", "").strip()
 
-# --- ЗАГРУЗКА ДАННЫХ ИЗ КУКИ ---
-bank_balance_cookie = cookie_manager.get(cookie="bank_balance")
-if bank_balance_cookie is None:
-    bank_balance = 60000
-else:
-    try:
-        bank_balance = float(bank_balance_cookie)
-    except:
-        bank_balance = 60000
-
-current_kredits = cookie_manager.get(cookie="kredits_cookies")
+# Если пользователь авторизован, загружаем его кредиты из базы сервера
 loans_list = []
-if current_kredits:
-    if isinstance(current_kredits, str):
-        try:
-            loans_list = json.loads(current_kredits)
-        except:
-            loans_list = []
-    elif isinstance(current_kredits, list):
-        loans_list = current_kredits
+if user_name:
+    if user_name not in db_server:
+        db_server[user_name] = {"loans": []}
+    loans_list = db_server[user_name]["loans"]
 
-# Считаем сумму активных долгов из куки
+# Считаем сумму активных долгов пользователя
 total_active_credit = sum(loan.get("amount", 0) for loan in loans_list)
 
-# --- ИСПРАВЛЕННЫЙ БЛОК ОЧИСТКИ КРЕДИТА АДМИНОМ ---
-# Проверяем: если запись в глобальной базе УЖЕ СУЩЕСТВУЕТ, но админ сбросил кредит в 0
-if user_name and user_name in global_db:
-    if global_db[user_name].get("credit_taken", -1) == 0 and total_active_credit > 0:
-        cookie_manager.set("kredits_cookies", [], key="clear_loans_cookie")
-        loans_list = []
-        total_active_credit = 0
-
-# --- СИНХРОНИЗАЦИЯ С АДМИНКОЙ ---
+# Синхронизируем данные с админкой
 if user_name:
-    # Если записи о юзере еще нет в глобальной памяти, создаем её с текущим кредитом из куки
-    if user_name not in global_db:
-        global_db[user_name] = {
-            "balance": st.session_state.get("b", 1000),
-            "credit_limit": st.session_state.get("n", 60000),
-            "credit_taken": total_active_credit
-        }
-    else:
-        # Если запись уже есть, просто обновляем балансы (не ломая credit_taken)
-        global_db[user_name]["balance"] = st.session_state.get("b", 1000)
-        global_db[user_name]["credit_limit"] = st.session_state.get("n", 60000)
+    global_db[user_name] = {
+        "balance": st.session_state.get("b", 1000),
+        "credit_limit": st.session_state.get("n", 60000),
+        "credit_taken": total_active_credit
+    }
 
-# Дальше идет ваш стандартный словарь месяцев procen...
 procen = {
     "Январь": 31, "Февраль": 28, "Март": 31, "Апрель": 30, "Май": 31, "Июнь": 30,
     "Июль": 31, "Август": 31, "Сентябрь": 30, "Октябрь": 31, "Ноябрь": 30, "Декабрь": 31
 }
-
 
 month_to_num = {
     "Январь": 1, "Февраль": 2, "Март": 3, "Апрель": 4, "Май": 5, "Июнь": 6,
@@ -78,9 +55,10 @@ st.title("Кредит")
 # Показываем список текущих взятых кредитов пользователя, если они есть
 if loans_list:
     st.subheader("📋 Ваши активные кредиты:")
-    for i, loan in enumerate(loans_list):
+    for loan in loans_list:
         st.info(f"**{loan['name_kredite']}**: {loan['amount']} ₽ (Вернуть: {loan['repayment']} ₽ до {loan['date_end']})")
 
+bank_balance = db_server["bank_balance"]
 st.warning(f"Доступно в банке: {bank_balance} ₽")
 kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
 st.write(" ")
@@ -128,10 +106,9 @@ else:
         
         if st.button("Подтвердить и взять кредит"):
             if all([c1, c2, c3, c4, c5]) and user_name:
-                if bank_balance >= kredit:
-                    # 1. Снимаем деньги из баланса банка и обновляем куку банка
-                    new_bank_balance = bank_balance - kredit
-                    cookie_manager.set("bank_balance", new_bank_balance, key="save_bank_cookie")
+                if db_server["bank_balance"] >= kredit:
+                    # 1. Снимаем деньги из банка
+                    db_server["bank_balance"] -= kredit
                     
                     # 2. Формируем данные кредита
                     loan_details = {
@@ -142,15 +119,15 @@ else:
                         "repayment": round(kredit + total_interest, 2)
                     }
 
-                    # 3. Добавляем кредит в список куки
-                    loans_list.append(loan_details)
-                    cookie_manager.set("kredits_cookies", loans_list, key="save_loans_cookie")
+                    # 3. Записываем в базу данных сервера
+                    db_server[user_name]["loans"].append(loan_details)
+                    db_server.sync()  # Принудительно сохраняем на диск
 
                     # 4. Моментально обновляем данные для админа
                     global_db[user_name] = {
                         "balance": st.session_state.get("b", 1000),
                         "credit_limit": st.session_state.get("n", 60000),
-                        "credit_taken": sum(l.get("amount", 0) for l in loans_list)
+                        "credit_taken": sum(l.get("amount", 0) for l in db_server[user_name]["loans"])
                     }
 
                     st.success(f"Кредит на {kredit} ₽ оформлен!")
@@ -165,3 +142,5 @@ else:
 
     if st.button("Оформить кредит"):
         show_popup()
+
+db_server.close()
