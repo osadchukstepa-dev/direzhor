@@ -19,8 +19,14 @@ st.markdown("""
 
 st.subheader("👥 Пользователи активны на сервере")
 
-current_admin_nick = st.session_state.get("nickname", "")
-active_users = {user: data for user, data in global_db.items() if user.strip() != "" and user != current_admin_nick}
+current_admin_nick = str(st.session_state.get("nickname", ""))
+
+# ЗАЩИЩЕННАЯ ФИЛЬТРАЦИЯ: принудительно переводим ключи в строку, чтобы .strip() не падал
+active_users = {}
+for user, data in list(global_db.items()):
+    user_str = str(user).strip()
+    if user_str != "" and user_str != current_admin_nick.strip():
+        active_users[user_str] = data
 
 if not active_users:
     st.info("В данный момент других активных пользователей на сервере нет.")
@@ -29,8 +35,8 @@ else:
         with st.container():
             st.markdown(f"""<div class="user-card"><div class="user-name">🟢 В сети: {nick}</div></div>""", unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
-            with col1: st.metric(label="💰 Баланс", value=f"{data['balance']} руб.")
-            with col2: st.metric(label="💳 Лимит", value=f"{data['credit_limit']} руб.")
+            with col1: st.metric(label="💰 Баланс", value=f"{data.get('balance', 1000)} руб.")
+            with col2: st.metric(label="💳 Лимит", value=f"{data.get('credit_limit', 60000)} руб.")
             with col3:
                 credit = data.get("credit_taken", 0)
                 if credit > 0:
@@ -44,11 +50,14 @@ else:
                     global_db[nick]["credit_taken"] = 0
                     
                     # 2. Удаляем кредит из базы данных сервера shelve
-                    db_server = shelve.open("server_bank_db", writeback=True)
-                    if nick in db_server:
-                        db_server[nick]["loans"] = []  # Очищаем список кредитов
-                        db_server.sync()
-                    db_server.close()
+                    try:
+                        db_server = shelve.open("server_bank_db", writeback=True)
+                        if nick in db_server:
+                            db_server[nick]["loans"] = []  # Очищаем список кредитов
+                            db_server.sync()
+                        db_server.close()
+                    except:
+                        pass
                             
                     st.success(f"Кредит пользователя {nick} успешно закрыт!")
                     time.sleep(0.8)
