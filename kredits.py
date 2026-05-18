@@ -4,14 +4,6 @@ from datetime import date
 import shelve
 from project import *
 
-# --- ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ SHELVE (ВМЕСТО JSON И КУКИ) ---
-# shelve автоматически создаст файл базы данных на сервере
-db_server = shelve.open("server_bank_db", writeback=True)
-
-# Инициализируем баланс банка, если его еще нет
-if "bank_balance" not in db_server:
-    db_server["bank_balance"] = 60000.0
-
 # --- ПОДКЛЮЧЕНИЕ ГЛОБАЛЬНОЙ БАЗЫ ДЛЯ АДМИНА ---
 @st.cache_resource
 def get_global_db():
@@ -22,7 +14,15 @@ global_db = get_global_db()
 # Получаем имя текущего пользователя
 user_name = st.session_state.get("nickname", "").strip()
 
-# Если пользователь авторизован, загружаем его кредиты из базы сервера
+# --- БЕЗОПАСНОЕ ЧТЕНИЕ ДАННЫХ ИЗ БАЗЫ СЕРВЕРА ---
+db_server = shelve.open("server_bank_db", writeback=True)
+
+# Инициализируем дефолтный баланс, если базы еще нет
+if "bank_balance" not in db_server:
+    db_server["bank_balance"] = 60000.0
+
+bank_balance = db_server["bank_balance"]
+
 loans_list = []
 if user_name:
     if user_name not in db_server:
@@ -31,6 +31,9 @@ if user_name:
 
 # Считаем сумму активных долгов пользователя
 total_active_credit = sum(loan.get("amount", 0) for loan in loans_list)
+
+# Закрываем базу сразу после чтения основных данных страницы
+db_server.close()
 
 # Синхронизируем данные с админкой
 if user_name:
@@ -58,7 +61,6 @@ if loans_list:
     for loan in loans_list:
         st.info(f"**{loan['name_kredite']}**: {loan['amount']} ₽ (Вернуть: {loan['repayment']} ₽ до {loan['date_end']})")
 
-bank_balance = db_server["bank_balance"]
 st.warning(f"Доступно в банке: {bank_balance} ₽")
 kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
 st.write(" ")
@@ -106,9 +108,13 @@ else:
         
         if st.button("Подтвердить и взять кредит"):
             if all([c1, c2, c3, c4, c5]) and user_name:
-                if db_server["bank_balance"] >= kredit:
+                
+                # ОТКРЫВАЕМ БАЗУ ДАННЫХ ЗАНОВО ВНУТРИ ДИАЛОГА ДЛЯ ПРОВЕРКИ И ЗАПИСИ
+                db_write = shelve.open("server_bank_db", writeback=True)
+                
+                if db_write["bank_balance"] >= kredit:
                     # 1. Снимаем деньги из банка
-                    db_server["bank_balance"] -= kredit
+                    db_write["bank_balance"] -= kredit
                     
                     # 2. Формируем данные кредита
                     loan_details = {
@@ -120,20 +126,25 @@ else:
                     }
 
                     # 3. Записываем в базу данных сервера
-                    db_server[user_name]["loans"].append(loan_details)
-                    db_server.sync()  # Принудительно сохраняем на диск
+                    if user_name not in db_write:
+                        db_write[user_name] = {"loans": []}
+                    db_write[user_name]["loans"].append(loan_details)
+                    db_write.sync()
 
                     # 4. Моментально обновляем данные для админа
                     global_db[user_name] = {
                         "balance": st.session_state.get("b", 1000),
                         "credit_limit": st.session_state.get("n", 60000),
-                        "credit_taken": sum(l.get("amount", 0) for l in db_server[user_name]["loans"])
+                        "credit_taken": sum(l.get("amount", 0) for l in db_write[user_name]["loans"])
                     }
+                    
+                    db_write.close()  # Закрываем базу данных после успешной записи
 
                     st.success(f"Кредит на {kredit} ₽ оформлен!")
                     time.sleep(1)
                     st.rerun()
                 else:
+                    db_write.close()  # Закрываем базу, если денег не хватило
                     st.error("В банке недостаточно средств!")
             elif not user_name:
                 st.error("Ошибка: вы не авторизованы!")
@@ -142,5 +153,3 @@ else:
 
     if st.button("Оформить кредит"):
         show_popup()
-
-db_server.close()
