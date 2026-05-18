@@ -98,6 +98,15 @@ else:
     
     @st.dialog("Кредитный договор")
     def show_popup():
+                # ... (Код внутри show_popup, где происходит запись кредита) ...
+        if user_name not in db_write:
+            db_write[user_name] = {"loans": []}
+        
+        # Принудительно очищаем старые записи, если нужно перезаписать, или просто добавляем:
+        db_write[user_name]["loans"].append(loan_details)
+        db_write.sync()
+        db_write.close()
+
         new_loan = st.text_input("введите название кредита")
         st.write("Проставьте все галочки для подтверждения:")
         c1 = st.checkbox("я обязуюсь оплатить кредит с комиссией")
