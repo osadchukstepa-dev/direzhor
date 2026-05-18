@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+import shelve
 
 @st.cache_resource
 def get_global_db():
@@ -39,10 +40,17 @@ else:
             
             if credit > 0:
                 if st.button(f"❌ Аннулировать кредит для {nick}", key=f"clr_{nick}", type="primary"):
-                    # Сбрасываем кредит в памяти админки. 
-                    # Когда пользователь обновит страницу, его kredits.py увидит 0 и очистит куки.
+                    # 1. Сбрасываем в оперативной памяти админки
                     global_db[nick]["credit_taken"] = 0
-                    st.success(f"Запрос на удаление кредита для {nick} отправлен!")
+                    
+                    # 2. Удаляем кредит из базы данных сервера shelve
+                    db_server = shelve.open("server_bank_db", writeback=True)
+                    if nick in db_server:
+                        db_server[nick]["loans"] = []  # Очищаем список кредитов
+                        db_server.sync()
+                    db_server.close()
+                            
+                    st.success(f"Кредит пользователя {nick} успешно закрыт!")
                     time.sleep(0.8)
                     st.rerun()
             st.write("")
