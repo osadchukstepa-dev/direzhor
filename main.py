@@ -44,7 +44,7 @@ with st.sidebar:
     if not st.session_state.is_admin:
         admin_code = st.text_input("Вход для админа (код)", type="password")
         if st.button("Войти как админ"):
-            if admin_code == "1234":
+            if admin_code == "248769794510455":
                 st.session_state.is_admin = True
                 st.success("Доступ разрешен!")
                 st.rerun()
