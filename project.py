@@ -3,10 +3,10 @@ import extra_streamlit_components as stx
 import json
 import os
 
-# --- ПОДКЛЮЧЕНИЕ ГЛОБАЛЬНОЙ БАЗЫ ДЛЯ АДМИНА ---
+# --- ГЛОБАЛЬНАЯ БАЗА ДЛЯ АДМИНА ---
 @st.cache_resource
 def get_global_db():
-    return {}  # Эта память живет на сервере GitHub и видна админу
+    return {}
 
 global_db = get_global_db()
 
@@ -23,61 +23,54 @@ def save_db(data):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 db = load_db()
-cookie_manager = stx.CookieManager()
+cookie_manager = stx.CookieManager(key="auth_cookie_manager")
 
-# 1. Читаем куки
+# Получаем имя пользователя из куки
 user_name = cookie_manager.get(cookie="user_name")
 
+# Если кука есть в браузере, автоматически авторизуем пользователя
 if user_name:
     st.session_state.nickname = user_name
     
-    # Если пользователь зашел по кукам, синхронизируем его с админкой
-    if user_name in db:
-        user_data = db[user_name]
-        
-    # Отправляем актуальные данные в глобальную память для админа
+    # Передаем актуальные данные админу в оперативную память
     global_db[user_name] = {
         "balance": st.session_state.get("b", 1000),
         "credit_limit": st.session_state.get("n", 60000),
         "credit_taken": st.session_state.get("credit_taken", 0)
     }
-    
-    st.success(f"Привет, {user_name}! Вы успешно авторизованы.")
+    st.success(f"Вы вошли как: **{user_name}**")
 
+# Если куки нет, показываем форму ввода
 else:
-    # 2. Регистрация, если куки нет
-    st.subheader("📝 Авторизация в системе")
+    st.subheader("📝 Вход или Регистрация")
     nickname = st.text_input("Как тебя зовут?").strip()
     password = st.number_input("Введите пароль", value=0, step=1)
     
-    if st.button("Войти или Создать аккаунт"):
+    if st.button("Войти / Создать аккаунт"):
         if nickname:
-            # Если человека нет в базе — создаем дефолтные значения
+            # Если пользователя нет в базе — регистрируем его
             if nickname not in db:
-                db[nickname] = {
-                    "password": password
-                }
+                db[nickname] = {"password": password}
                 save_db(db)
-                st.success("Новый аккаунт создан!")
-            else:
-                # Если человек есть, проверяем пароль
-                if db[nickname]["password"] != password:
-                    st.error("Неверный пароль для этого аккаунта!")
-                    st.stop()
-
-            # Сохраняем в локальную сессию
+                st.info("Создан новый аккаунт!")
+            
+            # Если пользователь уже был, проверяем его пароль
+            elif db[nickname]["password"] != password:
+                st.error("Неверный пароль!")
+                st.stop()
+            
+            # Сохраняем имя в текущую сессию
             st.session_state.nickname = nickname
 
-            # Передаем данные в глобальную память (чтобы админ сразу увидел)
+            # Отправляем данные админу
             global_db[nickname] = {
                 "balance": st.session_state.get("b", 1000),
                 "credit_limit": st.session_state.get("n", 60000),
                 "credit_taken": st.session_state.get("credit_taken", 0)
             }
 
-            # Сохраняем куку
-            cookie_manager.set("user_name", nickname, key="set_name")
-            st.success("Готово! Обновите страницу для применения изменений.")
-            st.rerun()
+            # Сохраняем куку в браузер
+            cookie_manager.set("user_name", nickname, key="save_user_cookie")
+            st.success("Успешный вход! Пожалуйста, перейдите на вкладку 'Главная'.")
         else:
-            st.error("Введите имя!")
+            st.error("Пожалуйста, введите имя!")
