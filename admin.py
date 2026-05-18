@@ -2,12 +2,6 @@ import streamlit as st
 import time
 import shelve
 
-@st.cache_resource
-def get_global_db():
-    return {}
-
-global_db = get_global_db()
-
 st.header("🛡️ Панель администратора", divider="red")
 
 st.markdown("""
@@ -17,28 +11,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.subheader("👥 Пользователи активны на сервере")
+st.subheader("👥 Все зарегистрированные пользователи и кредиты")
 
-current_admin_nick = str(st.session_state.get("nickname", ""))
+current_admin_nick = str(st.session_state.get("nickname", "")).strip()
 
-# ЗАЩИЩЕННАЯ ФИЛЬТРАЦИЯ: принудительно переводим ключи в строку, чтобы .strip() не падал
-active_users = {}
-for user, data in list(global_db.items()):
-    user_str = str(user).strip()
-    if user_str != "" and user_str != current_admin_nick.strip():
-        active_users[user_str] = data
+# Читаем данные напрямую из физической базы сервера
+db_server = shelve.open("server_bank_db", writeback=True)
 
-if not active_users:
-    st.info("В данный момент других активных пользователей на сервере нет.")
+# Собираем список реальных пользователей из базы данных
+users_in_db = {}
+for key in list(db_server.keys()):
+    if key != "bank_balance" and str(key).strip() != "" and str(key).strip() != current_admin_nick:
+        users_in_db[str(key)] = db_server[key]
+
+if not users_in_db:
+    st.info("В базе данных системы пока нет зарегистрированных пользователей.")
 else:
-    for nick, data in list(active_users.items()):
+    for nick, data in users_in_db.items():
+        # Считаем сумму кредитов пользователя напрямую из его истории в базе
+        loans = data.get("loans", [])
+        credit = sum(l.get("amount", 0) for l in loans)
+        
         with st.container():
-            st.markdown(f"""<div class="user-card"><div class="user-name">🟢 В сети: {nick}</div></div>""", unsafe_allow_html=True)
-            col1, col2, col3 = st.columns(3)
-            with col1: st.metric(label="💰 Баланс", value=f"{data.get('balance', 1000)} руб.")
-            with col2: st.metric(label="💳 Лимит", value=f"{data.get('credit_limit', 60000)} руб.")
-            with col3:
-                credit = data.get("credit_taken", 0)
+            st.markdown(f"""<div class="user-card"><div class="user-name">👤 Пользователь: {nick}</div></div>""", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1: 
+                # Баланс по умолчанию, если у вас в сессии (можно привязать к базе при необходимости)
+                st.metric(label="💰 Последний баланс сессии", value=f"{st.session_state.get('b', 1000)} руб.")
+            with col2:
                 if credit > 0:
                     st.metric(label="🚨 Взят кредит", value=f"{credit} руб.", delta=f"-{credit} руб.", delta_color="inverse")
                 else:
@@ -46,21 +46,18 @@ else:
             
             if credit > 0:
                 if st.button(f"❌ Аннулировать кредит для {nick}", key=f"clr_{nick}", type="primary"):
-                    # 1. Сбрасываем в оперативной памяти админки
-                    global_db[nick]["credit_taken"] = 0
+                    # Удаляем кредит физически из базы сервера!
+                    db_server[nick]["loans"] = []
+                    db_server.sync()
                     
-                    # 2. Удаляем кредит из базы данных сервера shelve
-                    try:
-                        db_server = shelve.open("server_bank_db", writeback=True)
-                        if nick in db_server:
-                            db_server[nick]["loans"] = []  # Очищаем список кредитов
-                            db_server.sync()
-                        db_server.close()
-                    except:
-                        pass
-                            
-                    st.success(f"Кредит пользователя {nick} успешно закрыт!")
+                    st.success(f"Кредит пользователя {nick} успешно удален из базы данных!")
                     time.sleep(0.8)
                     st.rerun()
             st.write("")
             st.markdown("---")
+
+# Показываем баланс самого банка
+bank_balance = db_server.get("bank_balance", 60000.0)
+st.metric("🏦 Остаток капитала в банке", f"{bank_balance} руб.")
+
+db_server.close()
