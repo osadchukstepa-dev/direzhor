@@ -2,13 +2,12 @@ import streamlit as st
 import time
 from datetime import date
 import shelve
-from project import *
+from project import *  # Предполагается, что этот файл существует у вас
 
 # --- ПОДКЛЮЧЕНИЕ ГЛОБАЛЬНОЙ БАЗЫ ДЛЯ АДМИНА ---
 @st.cache_resource
 def get_global_db():
     return {}
-
 global_db = get_global_db()
 
 # Получаем имя текущего пользователя
@@ -20,7 +19,6 @@ db_server = shelve.open("server_bank_db", writeback=True)
 # Инициализируем дефолтный баланс, если базы еще нет
 if "bank_balance" not in db_server:
     db_server["bank_balance"] = 60000.0
-
 bank_balance = db_server["bank_balance"]
 
 loans_list = []
@@ -43,16 +41,6 @@ if user_name:
         "credit_taken": total_active_credit
     }
 
-procen = {
-    "Январь": 31, "Февраль": 28, "Март": 31, "Апрель": 30, "Май": 31, "Июнь": 30,
-    "Июль": 31, "Август": 31, "Сентябрь": 30, "Октябрь": 31, "Ноябрь": 30, "Декабрь": 31
-}
-
-month_to_num = {
-    "Январь": 1, "Февраль": 2, "Март": 3, "Апрель": 4, "Май": 5, "Июнь": 6,
-    "Июль": 7, "Август": 8, "Сентябрь": 9, "Октябрь": 10, "Ноябрь": 11, "Декабрь": 12
-}
-
 st.title("Кредит")
 
 # Показываем список текущих взятых кредитов пользователя, если они есть
@@ -62,103 +50,111 @@ if loans_list:
         st.info(f"**{loan['name_kredite']}**: {loan['amount']} ₽ (Вернуть: {loan['repayment']} ₽ до {loan['date_end']})")
 
 st.warning(f"Доступно в банке: {bank_balance} ₽")
+
 kredit = st.number_input("Выберете сумму кредита", min_value=300, max_value=60000)
-st.write(" ")
 
-col1, col2 = st.columns(2)
-with col1:
-    month = st.selectbox("Выбери месяц начала кредита", list(procen.keys()))
-with col2:
-    max_days = procen[month]
-    days = st.selectbox("Выбери день начала кредита", list(range(1, max_days + 1)))
+st.write("---")
+st.subheader("🗓️ Выбор дат кредитования")
 
-st.write(" ")
+# Использование st.date_input для выбора диапазона дат
+today = date.today()
+selected_dates = st.date_input(
+    "Выберите дату начала и конца кредита",
+    value=(today, today),
+    min_value=today
+)
 
-col3, col4 = st.columns(2)
-with col3:
-    month_finish = st.selectbox("Выбери месяц конца кредита", list(procen.keys()))
-with col4:
-    max_days_finish = procen[month_finish]
-    days_finish = st.selectbox("Выбери день конца кредита", list(range(1, max_days_finish + 1)))
+# Проверяем, выбрал ли пользователь обе даты
+if isinstance(selected_dates, tuple) and len(selected_dates) == 2:
+    d_start, d_end = selected_dates
+    delta = d_end - d_start
+    loan_days = delta.days
 
-st.title(f"{month}, {days} ------ {month_finish}, {days_finish}")
+    if loan_days <= 0:
+        st.error("Ошибка: Срок кредита должен быть минимум 1 день!")
+        total_interest = 0.0
+    else:
+        # Автоматическое определение периода на основе количества дней
+        if loan_days <= 14:  # До двух недель считается недельным тарифом
+            period_name = "Недельный тариф"
+            daily_rate = 0.005  # Самая высокая ставка (0.5% в день)
+            st.warning(f"⏳ Распознан период: **Неделя** ({loan_days} дн.). Включена повышенная ставка переплаты!")
+        elif loan_days <= 90:  # От 15 до 90 дней считается месячным тарифом
+            period_name = "Месячный тариф"
+            daily_rate = 0.002  # Средняя ставка (0.2% в день)
+            st.info(f"📅 Распознан период: **Месяц** ({loan_days} дн.). Ставка стандартная.")
+        else:  # Все что больше 90 дней — годовой тариф
+            period_name = "Годовой тариф"
+            daily_rate = 0.0006  # Самая низкая ставка (0.06% в день)
+            st.success(f"📈 Распознан период: **Год** ({loan_days} дн.). Ставка снижена.")
 
-d_start = date(2026, month_to_num[month], days)
-d_end = date(2026, month_to_num[month_finish], days_finish)
-
-delta = d_end - d_start
-loan_days = delta.days
-
-if loan_days <= 0:
-    st.error("Ошибка: Дата конца должна быть позже даты начала!")
+        # Расчет переплаты
+        total_interest = kredit * daily_rate * loan_days
+        st.metric(label="Переплата", value=f"{round(total_interest, 2)} ₽")
 else:
-    base_rate = 0.05
-    total_interest = kredit * (base_rate / 30) * loan_days
-    st.metric(label="Переплата", value=f"{round(total_interest, 2)} ₽")
+    st.info("Пожалуйста, выберите вторую дату (дату окончания кредита) в календаре.")
+    loan_days = 0
+    total_interest = 0.0
+
+# --- ИСПРАВЛЕННЫЙ ДИАЛОГ КРЕДИТА ---
+@st.dialog("Кредитный договор")
+def show_popup():
+    new_loan = st.text_input("введите название кредита")
+    st.write("Проставьте все галочки для подтверждения:")
+    c1 = st.checkbox("я обязуюсь оплатить кредит с комиссией")
+    c2 = st.checkbox("я оставляю под залог")
+    c3 = st.checkbox("согласен на изъятие залога при неуплате")
+    c4 = st.checkbox("согласен на выбранный срок для закрытия")
+    c5 = st.checkbox("согласен на начисление штрафных процентов")
     
-    @st.dialog("Кредитный договор")
-    def show_popup():
-                # ... (Код внутри show_popup, где происходит запись кредита) ...
-        if user_name not in db_write:
-            db_write[user_name] = {"loans": []}
-        
-        # Принудительно очищаем старые записи, если нужно перезаписать, или просто добавляем:
-        db_write[user_name]["loans"].append(loan_details)
-        db_write.sync()
-        db_write.close()
-
-        new_loan = st.text_input("введите название кредита")
-        st.write("Проставьте все галочки для подтверждения:")
-        c1 = st.checkbox("я обязуюсь оплатить кредит с комиссией")
-        c2 = st.checkbox("я оставляю под залог")
-        c3 = st.checkbox("согласен на изъятие залога при неуплате")
-        c4 = st.checkbox("согласен на срок 1 месяц для закрытия")
-        c5 = st.checkbox("согласен на начисление штрафных процентов")
-        
-        if st.button("Подтвердить и взять кредит"):
-            if all([c1, c2, c3, c4, c5]) and user_name:
+    if st.button("Подтвердить и взять кредит"):
+        if all([c1, c2, c3, c4, c5]) and user_name:
+            # ОТКРЫВАЕМ БАЗУ ДАННЫХ ЗАНОВО ВНУТРИ ДИАЛОГА ДЛЯ ПРОВЕРКИ И ЗАПИСИ
+            db_write = shelve.open("server_bank_db", writeback=True)
+            
+            if db_write["bank_balance"] >= kredit:
+                # 1. Снимаем деньги из банка
+                db_write["bank_balance"] -= kredit
                 
-                # ОТКРЫВАЕМ БАЗУ ДАННЫХ ЗАНОВО ВНУТРИ ДИАЛОГА ДЛЯ ПРОВЕРКИ И ЗАПИСИ
-                db_write = shelve.open("server_bank_db", writeback=True)
+                # 2. Формируем данные кредита
+                loan_details = {
+                    "name_kredite": new_loan if new_loan else "Без названия",
+                    "amount": kredit,
+                    "date_start": str(d_start),
+                    "date_end": str(d_end),
+                    "repayment": round(kredit + total_interest, 2)
+                }
                 
-                if db_write["bank_balance"] >= kredit:
-                    # 1. Снимаем деньги из банка
-                    db_write["bank_balance"] -= kredit
-                    
-                    # 2. Формируем данные кредита
-                    loan_details = {
-                        "name_kredite": new_loan,
-                        "amount": kredit,
-                        "date_start": str(d_start),
-                        "date_end": str(d_end),
-                        "repayment": round(kredit + total_interest, 2)
-                    }
-
-                    # 3. Записываем в базу данных сервера
-                    if user_name not in db_write:
-                        db_write[user_name] = {"loans": []}
-                    db_write[user_name]["loans"].append(loan_details)
-                    db_write.sync()
-
-                    # 4. Моментально обновляем данные для админа
-                    global_db[user_name] = {
-                        "balance": st.session_state.get("b", 1000),
-                        "credit_limit": st.session_state.get("n", 60000),
-                        "credit_taken": sum(l.get("amount", 0) for l in db_write[user_name]["loans"])
-                    }
-                    
-                    db_write.close()  # Закрываем базу данных после успешной записи
-
-                    st.success(f"Кредит на {kredit} ₽ оформлен!")
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    db_write.close()  # Закрываем базу, если денег не хватило
-                    st.error("В банке недостаточно средств!")
-            elif not user_name:
-                st.error("Ошибка: вы не авторизованы!")
+                # 3. Записываем в базу данных сервера
+                if user_name not in db_write:
+                    db_write[user_name] = {"loans": []}
+                
+                db_write[user_name]["loans"].append(loan_details)
+                db_write.sync()
+                
+                # 4. Моментально обновляем данные для admin
+                global_db[user_name] = {
+                    "balance": st.session_state.get("b", 1000),
+                    "credit_limit": st.session_state.get("n", 60000),
+                    "credit_taken": sum(l.get("amount", 0) for l in db_write[user_name]["loans"])
+                }
+                db_write.close()
+                
+                st.success(f"Кредит на {kredit} ₽ оформлен!")
+                time.sleep(1)
+                st.rerun()
             else:
-                st.warning("Нужно отметить все пункты!")
+                db_write.close()
+                st.error("В банке недостаточно средств!")
+        elif not user_name:
+            st.error("Ошибка: вы не авторизованы!")
+        else:
+            st.warning("Нужно отметить все пункты!")
 
-    if st.button("Оформить кредит"):
+if st.button("Оформить кредит"):
+    if not user_name:
+        st.error("Ошибка: авторизуйтесь перед оформлением кредита!")
+    elif loan_days <= 0:
+        st.error("Ошибка: Выберите корректный диапазон дат!")
+    else:
         show_popup()
