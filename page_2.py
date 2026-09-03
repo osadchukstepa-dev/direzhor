@@ -1,101 +1,317 @@
-
 import streamlit as st
-import time
-import extra_streamlit_components as stx
-from kredits import db, user_name
-import json
-# В начале файла page_2.py
-@st.cache_data(ttl=2)  # Проверять файл каждые 2 секунды
-def get_updated_db():
-    with open("users_stats.json", "r") as f:
-        return json.load(f)
-
-db = get_updated_db() # Теперь db всегда актуальна
-
-if "nickname" not in st.session_state:
-    st.session_state.nickname = ""
-
-cookie_manager = stx.CookieManager(key="mngr_page2")
-current_user = cookie_manager.get("user_name")
-
-akk, birz = st.tabs(["Аккаунт", "Кредиты"])
-
-if "reg" not in st.session_state:
-    st.session_state.reg = True
+import shelve
 
 
+# =========================================================
+# НАСТРОЙКИ
+# =========================================================
 
-def messege():
-    if st.session_state.reg:
-        st.toast("✅вы успешно заригестрировались")
-        time.sleep(1)
-        st.session_state.reg = False
-
+DB_FILE = "server_bank_db"
 
 
+# =========================================================
+# ПОЛЬЗОВАТЕЛЬ
+# =========================================================
+
+username = st.session_state.get("nickname", "").strip()
 
 
-if not st.session_state.nickname:
-    saved_name = cookie_manager.get("user_name")
-    if saved_name:
-        st.session_state.nickname = saved_name
+# =========================================================
+# ЕСЛИ НЕ АВТОРИЗОВАН
+# =========================================================
+
+st.title("🏠 Rasino")
+
+if not username:
+    st.warning(
+        "У вас нет аккаунта. "
+        "Перейдите во вкладку «Регистрация» и войдите."
+    )
+
+    if st.button("👤 Перейти к регистрации", type="primary"):
+        st.switch_page("project.py")
+
+    st.stop()
 
 
-if not st.session_state.nickname:
-    st.write("К сожалению, у вас нет аккаунта, войдите для дальнейшего использования ")
+# =========================================================
+# ОТКРЫВАЕМ БАЗУ
+# =========================================================
 
-else:
-    with akk:
-        st.title(f"Ваш баланс: {st.session_state.b}")
-        if current_user:
-            st.write("Вы вошли, как", current_user)
-        if st.button("Очистить куки и выйти"):
-            cookie_manager.delete("user_name", key="delete_user_name")
+db = shelve.open(DB_FILE, writeback=True)
+
+try:
+
+    # Если пользователя почему-то нет в базе
+    if username not in db:
+        db[username] = {
+            "password": "",
+            "balance": 1000.0,
+            "credit_limit": 60000.0,
+            "loans": [],
+            "lines_ticket": None,
+        }
+
+        db.sync()
+
+
+    user_data = db[username]
+
+
+    # =====================================================
+    # ЗАЩИТА ОТ СТАРЫХ ДАННЫХ
+    # =====================================================
+
+    if "balance" not in user_data:
+        user_data["balance"] = 1000.0
+
+    if "loans" not in user_data:
+        user_data["loans"] = []
+
+    if "lines_ticket" not in user_data:
+        user_data["lines_ticket"] = None
+
+
+    db[username] = user_data
+    db.sync()
+
+
+    # =====================================================
+    # ПОЛУЧАЕМ ДАННЫЕ
+    # =====================================================
+
+    balance = float(
+        user_data.get("balance", 1000.0)
+    )
+
+    loans = user_data.get("loans", [])
+
+    st.session_state.b = balance
+
+
+    # =====================================================
+    # КРЕДИТНАЯ ИСТОРИЯ
+    # =====================================================
+
+    plus = 0
+    minus = 0
+
+    for loan in loans:
+
+        stats = loan.get("stats")
+
+        if stats == "+":
+            plus += 1
+
+        elif stats == "-":
+            minus += 1
+
+
+    if plus > minus:
+        credit_history = "Хорошая"
+    elif plus == minus:
+        credit_history = "Сомнительная"
+    else:
+        credit_history = "Плохая"
+
+
+    # =====================================================
+    # ВКЛАДКИ
+    # =====================================================
+
+    account_tab, credits_tab = st.tabs(
+        ["👤 Аккаунт", "💳 Кредиты"]
+    )
+
+
+    # =====================================================
+    # АККАУНТ
+    # =====================================================
+
+    with account_tab:
+
+        st.title(f"Привет, {username} 👋")
+
+        st.metric(
+            "💰 Ваш баланс",
+            f"{balance:,.2f} ₽".replace(",", " ")
+        )
+
+        st.write("Вы вошли как:")
+        st.info(username)
+
+        st.divider()
+
+        # ---------------------------------------------
+        # БЫСТРЫЕ КНОПКИ
+        # ---------------------------------------------
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            if st.button(
+                "💳 Перейти к кредитам",
+                use_container_width=True,
+            ):
+                st.switch_page("kredits.py")
+
+        with col2:
+
+            if st.button(
+                "〰️ Перейти в Lines",
+                use_container_width=True,
+            ):
+                st.switch_page("lines.py")
+
+
+        st.divider()
+
+        # ---------------------------------------------
+        # ВЫХОД
+        # ---------------------------------------------
+
+        st.subheader("🚪 Выход")
+
+        if st.button(
+            "Выйти из аккаунта",
+            use_container_width=True,
+        ):
+
             st.session_state.nickname = ""
-            time.sleep(1) 
-            st.switch_page("project.py") 
+            st.session_state.b = 1000.0
+            st.session_state.n = 60000.0
+            st.session_state.credit_taken = 0.0
+
             st.rerun()
-            st.balloons()
-        messege()
-       
-            
-                
-        
-        if st.button("Перейти к кредитам"):
-            st.switch_page("kredits.py")
-        with birz:
-            st.subheader("Список ваших кредитов")
 
 
-            user_data = db.get(current_user, {})
-            user_loans = user_data.get("loans", [])
-            user_stats = [l.get("stats") for l in user_loans]
+    # =====================================================
+    # КРЕДИТЫ
+    # =====================================================
+
+    with credits_tab:
+
+        st.subheader("📋 Ваши кредиты")
+
+        # ---------------------------------------------
+        # КРЕДИТНАЯ ИСТОРИЯ
+        # ---------------------------------------------
+
+        st.write("Кредитная история:")
+
+        if credit_history == "Хорошая":
+
+            st.success(
+                f"🟢 {credit_history}"
+            )
+
+        elif credit_history == "Сомнительная":
+
+            st.warning(
+                f"🟠 {credit_history}"
+            )
+
+        else:
+
+            st.error(
+                f"🔴 {credit_history}"
+            )
 
 
-            plus = user_stats.count("+")
-            minus = user_stats.count("-") 
+        # ---------------------------------------------
+        # СПИСОК КРЕДИТОВ
+        # ---------------------------------------------
+
+        if loans:
+
+            st.write(
+                f"Активных кредитов: **{len(loans)}**"
+            )
+
+            for index, loan in enumerate(loans):
+
+                loan_name = loan.get(
+                    "name_kredite",
+                    loan.get(
+                        "name kredite",
+                        "Кредит"
+                    )
+                )
+
+                amount = float(
+                    loan.get("amount", 0)
+                )
+
+                repayment = float(
+                    loan.get("repayment", 0)
+                )
+
+                date_end = loan.get(
+                    "date_end",
+                    "не указано"
+                )
+
+                stats = loan.get("stats", "")
 
 
-            if plus > minus:
-                st.write("Ваша кредитаная история: :green[хорошая]")
-            elif plus == minus:
-                st.write("Ваша кредитаная история : :orange[сомнительная]")
-            else:
-                st.write("Ваша кредитаная история: :red[Плохая]")
+                with st.expander(
+                    f"📌 {loan_name}"
+                ):
 
-            if current_user in db:
-                    # Получаем список всех кредитов этого юзера
-                    user_loans = db[current_user].get("loans", [])
-                    
-                    if user_loans:
-                        # 3. Цикл проходит по ВСЕМ кредитам юзера и выводит их
-                        for loan in user_loans:
-                            with st.expander(f"📌 {loan.get('name kredite', 'Кредит')}"):
-                                st.write(f"Сумма: {loan['amount']} ₽")
-                                st.write(f"К возврату: {loan['repayment']} ₽")
-                                st.caption(f"Срок(до какого числа): {loan['date_end']}")
-                                st.write("сдать кредит")
+                    st.write(
+                        f"**Сумма:** {amount:,.2f} ₽"
+                        .replace(",", " ")
+                    )
+
+                    st.write(
+                        f"**К возврату:** {repayment:,.2f} ₽"
+                        .replace(",", " ")
+                    )
+
+                    st.caption(
+                        f"Срок до: {date_end}"
+                    )
+
+
+                    if stats == "+":
+
+                        st.success(
+                            "Кредит погашен вовремя"
+                        )
+
+                    elif stats == "-":
+
+                        st.error(
+                            "Есть просрочка"
+                        )
 
                     else:
-                        st.info("У вас нет активных кредитов")
 
+                        st.info(
+                            "Кредит активен"
+                        )
+
+
+        else:
+
+            st.info(
+                "У вас пока нет кредитов."
+            )
+
+
+        st.divider()
+
+
+        if st.button(
+            "💳 Оформить новый кредит",
+            type="primary",
+            use_container_width=True,
+        ):
+
+            st.switch_page("kredits.py")
+
+
+finally:
+
+    db.close()
