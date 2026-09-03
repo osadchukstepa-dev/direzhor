@@ -229,7 +229,7 @@ try:
     elif loan_days <= 90:
         base_rate = 0.2
     else:
-        base_rate = 0.06
+        base_rate = 0.08
 
     final_rate = max(
         0,
