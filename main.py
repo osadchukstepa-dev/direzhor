@@ -7,7 +7,7 @@ import shelve
 # =========================================================
 
 st.set_page_config(
-    page_title="Rasino",
+    page_title="Elbrus bank",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -247,31 +247,6 @@ st.markdown(
 # =========================================================
 
 with st.sidebar:
-
-    st.markdown(
-        """
-        <div style="
-            padding: 10px 5px 20px 5px;
-            text-align: center;
-        ">
-            <div style="
-                font-size: 34px;
-                font-weight: 800;
-            ">
-                ✨ Rasino
-            </div>
-
-            <div style="
-                opacity: 0.65;
-                font-size: 13px;
-                margin-top: 5px;
-            ">
-                Финансовая система
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     st.divider()
 
