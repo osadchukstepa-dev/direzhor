@@ -1,6 +1,5 @@
 import streamlit as st
 import shelve
-import requests  # Подключили библиотеку для связи с облаком
 
 
 # =========================================================
@@ -102,24 +101,6 @@ if nickname:
                 "credit_limit": st.session_state.n,
                 "credit_taken": st.session_state.credit_taken,
             }
-
-            # -----------------------------------------------------
-            # АВТОМАТИЧЕСКАЯ ОТПРАВКА ДАННЫХ В MAKE.COM
-            # -----------------------------------------------------
-            try:
-                requests.post(
-                    "https://make.com", 
-                    json={
-                        "nickname": nickname,
-                        "balance": st.session_state.b,
-                        "credit_limit": st.session_state.n,
-                        "credit_taken": st.session_state.credit_taken
-                    }, 
-                    timeout=2
-                )
-            except:
-                pass
-            # -----------------------------------------------------
 
         db.close()
 
