@@ -1,6 +1,6 @@
 import streamlit as st
 import shelve
-import requests  # <-- ДОБАВИЛИ БИБЛИОТЕКУ ДЛЯ ОТПРАВКИ В ОБЛАКО
+import requests  # Подключили библиотеку для связи с облаком
 
 
 # =========================================================
@@ -102,23 +102,21 @@ if nickname:
                 "credit_limit": st.session_state.n,
                 "credit_taken": st.session_state.credit_taken,
             }
-            
+
             # -----------------------------------------------------
-            # ОТПРАВКА ДАННЫХ В GOOGLE ТАБЛИЦЫ ЧЕРЕЗ MAKE.COM
+            # АВТОМАТИЧЕСКАЯ ОТПРАВКА ДАННЫХ В MAKE.COM
             # -----------------------------------------------------
-            # Каждый раз, когда данные обновляются, мы шлем их в Make
-            webhook_url = "https://make.com"
-            
-            payload = {
-                "nickname": nickname,
-                "balance": st.session_state.b,
-                "credit_limit": st.session_state.n,
-                "credit_taken": st.session_state.credit_taken
-            }
-            
-            # Отправляем в фоновом режиме (ignore_errors, чтобы сайт не падал, если нет интернета)
             try:
-                requests.post(webhook_url, json=payload, timeout=2)
+                requests.post(
+                    "https://make.com", 
+                    json={
+                        "nickname": nickname,
+                        "balance": st.session_state.b,
+                        "credit_limit": st.session_state.n,
+                        "credit_taken": st.session_state.credit_taken
+                    }, 
+                    timeout=2
+                )
             except:
                 pass
             # -----------------------------------------------------
@@ -130,7 +128,7 @@ if nickname:
 
 
 # =========================================================
-# ДИЗАЙН (ОСТАЛСЯ БЕЗ ИЗМЕНЕНИЙ)
+# ДИЗАЙН
 # =========================================================
 
 st.markdown(
