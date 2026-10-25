@@ -244,18 +244,6 @@ try:
 
     repayment = kredit + interest
 
-    st.write(
-        f"Базовая ставка: **{base_rate:.2f}%**"
-    )
-
-    if lines_discount > 0:
-        st.write(
-            f"〰️ Lines: **−{lines_discount:.2f}%**"
-        )
-
-    st.write(
-        f"Итоговая ставка: **{final_rate:.2f}%**"
-    )
 
     st.write(
         f"💰 К возврату: **{money(repayment)}**"
