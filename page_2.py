@@ -20,7 +20,7 @@ username = st.session_state.get("nickname", "").strip()
 # ЕСЛИ НЕ АВТОРИЗОВАН
 # =========================================================
 
-st.title("🏠 Rasino")
+st.title("🏠 Elbrus bank")
 
 if not username:
     st.warning(
@@ -107,12 +107,12 @@ try:
             minus += 1
 
 
-    if plus > minus:
-        credit_history = "Хорошая"
-    elif plus == minus:
-        credit_history = "Сомнительная"
-    else:
-        credit_history = "Плохая"
+    # if plus > minus:
+    #     credit_history = "Хорошая"
+    # elif plus == minus:
+    #     credit_history = "Сомнительная"
+    # else:
+    #     credit_history = "Плохая"
 
 
     # =====================================================
@@ -198,25 +198,25 @@ try:
         # КРЕДИТНАЯ ИСТОРИЯ
         # ---------------------------------------------
 
-        st.write("Кредитная история:")
+        # st.write("Кредитная история:")
 
-        if credit_history == "Хорошая":
+        # if credit_history == "Хорошая":
 
-            st.success(
-                f"🟢 {credit_history}"
-            )
+        #     st.success(
+        #         f"🟢 {credit_history}"
+        #     )
 
-        elif credit_history == "Сомнительная":
+        # elif credit_history == "Сомнительная":
 
-            st.warning(
-                f"🟠 {credit_history}"
-            )
+        #     st.warning(
+        #         f"🟠 {credit_history}"
+        #     )
 
-        else:
+        # else:
 
-            st.error(
-                f"🔴 {credit_history}"
-            )
+        #     st.error(
+        #         f"🔴 {credit_history}"
+        #     )
 
 
         # ---------------------------------------------
